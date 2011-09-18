@@ -1,5 +1,4 @@
 def start_server(script_path,script_name):
-	from application import Application, HTTPServer
 	import tornado.httpserver
 	import tornado.web
 	import tornado.ioloop
@@ -8,6 +7,8 @@ def start_server(script_path,script_name):
 
 	from handlers import *
 	
+	print 'Running Server on port %s' % PORT
+
 	ioloop = tornado.ioloop.IOLoop.instance()
 
 	settings = dict(
@@ -30,14 +31,8 @@ def start_server(script_path,script_name):
 
 def runserver():
 	import os, fs, site
-	from os.path import join, exits
-	print 'Running Server on port %s' % PORT
+	from os.path import join, exists
 
-    import logging
-    # print 'logging to testing.log', structure.DEFAULT_HOSTNAME
-    LOG_FILENAME = join(script_path,'testing.log')
-    logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
-    
 	project_path = os.getcwd()
 	setattr(site, "PROJECT_DIR", project_path)
 	setattr(site, "SITE_DIR", project_path)
@@ -47,4 +42,11 @@ def runserver():
 		setattr(site, "PARTS_DIR", join(project_path,"parts"))
 	setattr(site, "TEMPLATES_DIR", project_path)
 
-    start_server(project_path,"runserver")
+	import logging
+	# print 'logging to testing.log', structure.DEFAULT_HOSTNAME
+	LOG_FILENAME = join(project_path,'testing.log')
+	logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
+
+	from cached import populate_cache
+	populate_cache()
+	start_server(project_path,"runserver")

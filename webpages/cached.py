@@ -1,7 +1,7 @@
 from __future__ import with_statement
 
-import os
-from os.path import join, exists, abspath, splitext
+import os, stat
+from os.path import join, exists, abspath, splitext, split
 from fs import listdir, filters
 import hashlib, json, datetime, time, site
 import mimetypes
@@ -38,77 +38,96 @@ class CachedHandler(tornado.web.RequestHandler):
     	if contentkey in REDIS:
     		#TODO etag and headers
     		#TODO url type, inject state script
+    		print "Serving",path, REDIS[headerkey]
     		if not include_body:
 	    		self.flush()
     			return
     		self.write(REDIS[contentkey])
     		self.flush()
     	else:
+	        print path, contentkey, headerkey
     		raise tornado.web.HTTPError(404, "We couldn't find requested information")
      
 #TODO review tornado StaticFileHandler
 
-def html_file(path,modified,content):
-	header = {
-		"Content-Type": "text/html",
-	}
-	return header,content
-	   
-def markdown_file(path,modified,content):
-	header = {
-		"Content-Type": "text/html",
-	}
-	#TODO convert markdown to html
-	return header,content
-	   
-def default_file(path,modified,content):
-	header = {
-		"Content-Type": "text/plain",
-	}
-	mime_type,encoding = mimetypes.guess_type(path)
-	if mime_type:
-		header["Content-Type"] = mime_type
-	return header,content
-
-FILE_EXTENSIONS = {
-	"html" : html_file,
-	"md" : markdown_file,
-	"mdown" : markdown_file,
-	"markdown" : markdown_file,
-}
-
 class FileExpander(object):
 
-	def __init__(self,base,relpath)
+	def __init__(self,base,relpath):
 		self.base = base
 		self.path = relpath
+		self.name, self.ext = splitext(split(relpath)[1])
 
 		path = abspath(join(site.SITE_DIR,relpath))
 		stat_result = os.stat(path)
-		modified = datatime.datetime.fromtimestamp(stat_result[stat.ST_MTIME])
+		self.modified = datetime.datetime.fromtimestamp(stat_result[stat.ST_MTIME])
 
 		content = None
 		with open(path, "rb") as f:
 			content = f.read()
 
-		ext = splitext(path)[1]
-		if ext in FILE_EXTENSIONS:
-			self.header, self.content = FILE_EXTENSIONS[ext](path,modified,content)
+		if self.ext in self.FILE_EXTENSIONS:
+			self.header, self.content, self.urlpath = self.FILE_EXTENSIONS[self.ext](self,content)
 		else:
-			self.header, self.content = default_file(path,modified,content)
+			self.header, self.content, self.urlpath = self._default_file(content)
 
 
-	def cache(self,browser_type)
-        contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , self.path) 
-        REDIS[contentkey] = self.content
-        headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , self.path) 
-        REDIS[headerkey] = self.header
+	def _html_file(self,content):
+		header = {
+			"Content-Type": "text/html",
+		}
+		if self.name == "index":
+			urlpath = "/" + split(self.path)[0]
+		else:
+			urlpath = "/" + splitext(self.path)[0]
+		return header,content,urlpath
+		   
+	def _markdown_file(self,content):
+		header = {
+			"Content-Type": "text/html",
+		}
+		if self.name == "index":
+			urlpath = "/" + split(self.path)[0]
+		else:
+			urlpath = "/" + splitext(self.path)[0]
+
+		import markdown2
+		extras = ["code-friendly","wiki-tables","cuddled-lists"]
+		content = markdown2.markdown(content,extras)
+		#TODO convert markdown to html
+		return header,content,urlpath
+		   
+	def _default_file(self,content):
+		header = {
+			"Content-Type": "text/plain",
+		}
+		mime_type,encoding = mimetypes.guess_type(self.path)
+		if mime_type:
+			header["Content-Type"] = mime_type
+		urlpath = "/" + self.path
+		return header,content,urlpath
+
+	FILE_EXTENSIONS = {
+		".html" : _html_file,
+		".md" : _markdown_file,
+		".mdown" : _markdown_file,
+		".markdown" : _markdown_file,
+	}
+
+
+	def cache(self,browser_type):
+		contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , self.urlpath) 
+		REDIS[contentkey] = self.content
+		REDIS.expire(contentkey,ONE_YEAR_IN_SECONDS)
+		headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , self.urlpath) 
+		REDIS[headerkey] = json.dumps(self.header)
+		REDIS.expire(headerkey,ONE_YEAR_IN_SECONDS)
 
 def populate_cache():
-	for relpath in fs.listdir(site.SITE_DIR,filters=filters.no_directories):
+	for relpath in listdir(site.SITE_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
 		if not relpath[0] == "_":
 			expander = FileExpander(site.SITE_DIR,relpath)
 			expander.cache("pocket")
 			expander.cache("tablet")
 			expander.cache("desktop")
+			print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext
 

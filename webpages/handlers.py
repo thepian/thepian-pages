@@ -3,7 +3,7 @@ from cached import *
 PORT = 9000
 
 SITE = {
-    "path": join(script_path),
+    #"path": join(script_path),
     "dirname": "wwwsite",
     "port":PORT,
     
