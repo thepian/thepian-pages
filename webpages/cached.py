@@ -10,6 +10,7 @@ import tornado.web
 import redis
 
 from base import *
+from config import *
 
 UNIT_SEP = "\x1F"
 REDIS_HOST = 'localhost'
@@ -38,7 +39,11 @@ class CachedHandler(tornado.web.RequestHandler):
     	if contentkey in REDIS:
     		#TODO etag and headers
     		#TODO url type, inject state script
-    		print "Serving",path, REDIS[headerkey]
+    		header = json.loads(REDIS[headerkey])
+    		for hn in self.HTTP_HEADER_NAMES:
+    			if hn in header:
+    				self.set_header(hn,header[hn])
+
     		if not include_body:
 	    		self.flush()
     			return
@@ -47,12 +52,23 @@ class CachedHandler(tornado.web.RequestHandler):
     	else:
 	        print path, contentkey, headerkey
     		raise tornado.web.HTTPError(404, "We couldn't find requested information")
+
+    HTTP_HEADER_NAMES = [
+    	"Content-Type",
+    	"Content-Location",		# Do browser care?
+    	"Content-Disposition", # force download dialog
+    	"Content-Language",
+    	"Last-Modified",
+    	"Expires",
+    	"Location",			# for redirect
+    ]
      
 #TODO review tornado StaticFileHandler
 
 class FileExpander(object):
 
-	def __init__(self,base,relpath):
+	def __init__(self,base,relpath,config=None):
+		self.config = config
 		self.base = base
 		self.path = relpath
 		self.name, self.ext = splitext(split(relpath)[1])
@@ -65,36 +81,59 @@ class FileExpander(object):
 		with open(path, "rb") as f:
 			content = f.read()
 
-		if self.ext in self.FILE_EXTENSIONS:
-			self.header, self.content, self.urlpath = self.FILE_EXTENSIONS[self.ext](self,content)
-		else:
-			self.header, self.content, self.urlpath = self._default_file(content)
+		self.expandPage = False
 
+		if self.ext in self.FILE_EXTENSIONS:
+			self.FILE_EXTENSIONS[self.ext](self,content)
+		else:
+			self._default_file(content)
+
+
+	def _text_file(self,content):
+		header = {
+			"Content-Type": "text/plain",
+		}
+		if self.name == "index":
+			self.urlpath = "/" + split(self.path)[0]
+		else:
+			self.urlpath = "/" + splitext(self.path)[0] + "/"
+
+		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		   
+		if "page" in self.header:
+			self.expandPage = True
 
 	def _html_file(self,content):
 		header = {
 			"Content-Type": "text/html",
 		}
 		if self.name == "index":
-			urlpath = "/" + split(self.path)[0]
+			self.urlpath = "/" + split(self.path)[0]
 		else:
-			urlpath = "/" + splitext(self.path)[0]
-		return header,content,urlpath
+			self.urlpath = "/" + splitext(self.path)[0] + "/"
+
+		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
 		   
+		if "page" in self.header:
+			self.expandPage = True
+
 	def _markdown_file(self,content):
 		header = {
 			"Content-Type": "text/html",
 		}
 		if self.name == "index":
-			urlpath = "/" + split(self.path)[0]
+			self.urlpath = "/" + split(self.path)[0]
 		else:
-			urlpath = "/" + splitext(self.path)[0]
+			self.urlpath = "/" + splitext(self.path)[0] + "/"
+
+		self.header,rest = self.config.split_header_and_utf8_content(content,header)
+
+		if "page" in self.header:
+			self.expandPage = True
 
 		import markdown2
 		extras = ["code-friendly","wiki-tables","cuddled-lists"]
-		content = markdown2.markdown(content,extras)
-		#TODO convert markdown to html
-		return header,content,urlpath
+		self.content = markdown2.markdown(rest,extras)
 		   
 	def _default_file(self,content):
 		header = {
@@ -103,16 +142,23 @@ class FileExpander(object):
 		mime_type,encoding = mimetypes.guess_type(self.path)
 		if mime_type:
 			header["Content-Type"] = mime_type
-		urlpath = "/" + self.path
-		return header,content,urlpath
+		self.urlpath = "/" + self.path
+		self.header = header
+		self.content = content
 
 	FILE_EXTENSIONS = {
+		".txt" : _text_file,
+		".text" : _text_file,
 		".html" : _html_file,
 		".md" : _markdown_file,
 		".mdown" : _markdown_file,
 		".markdown" : _markdown_file,
 	}
 
+	def expandIfPage(self):
+		from parts import *
+		if self.expandPage:
+			self.content = expandPage(self.header["page"],self.content,config=self.config)
 
 	def cache(self,browser_type):
 		contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , self.urlpath) 
@@ -122,12 +168,18 @@ class FileExpander(object):
 		REDIS[headerkey] = json.dumps(self.header)
 		REDIS.expire(headerkey,ONE_YEAR_IN_SECONDS)
 
+
+# populate with files that have an extension and do not start with _
 def populate_cache():
+	config = ApplicationConfig()
+
 	for relpath in listdir(site.SITE_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
 		if not relpath[0] == "_":
-			expander = FileExpander(site.SITE_DIR,relpath)
-			expander.cache("pocket")
-			expander.cache("tablet")
-			expander.cache("desktop")
-			print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext
+			expander = FileExpander(site.SITE_DIR,relpath,config=config)
+			expander.expandIfPage()
+			if expander.ext != '': 
+				expander.cache("pocket")
+				expander.cache("tablet")
+				expander.cache("desktop")
+				print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext, expander.expandPage
 

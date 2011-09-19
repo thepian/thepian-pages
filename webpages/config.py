@@ -1,3 +1,7 @@
+from __future__ import with_statement
+
+import yaml
+
 from os.path import exists,join
 
 class ApplicationConfig(object):
@@ -17,6 +21,20 @@ class ApplicationConfig(object):
         if key in self.config:
             return self.config[key]
         return self.defaults[key]
+
+    def split_header_and_utf8_content(self,content,header):
+
+        if content[:3] == "---":
+            parts = content.split("---")
+            matter = yaml.load(parts[1])
+            for key in header.keys():
+                matter[key] = header[key]
+            encoding = 'utf-8'
+            if 'encoding' in matter:
+                encoding = matter['encoding']
+            return matter, parts[2].decode(encoding)
+
+        return header, content
         
     def describe_area_matter(self,name):
         matter = {}
@@ -29,3 +47,20 @@ class ApplicationConfig(object):
 
         return matter
 
+def load_html(path,parser):
+    doc = None
+    matter = None
+
+    with codecs.open(path,"r","utf-8") as f:
+        s = f.read()
+        parts = s.split("---")
+        if len(parts) == 3 and len(parts[0]) == 0:
+            s = parts[-1]
+        if len(s) == 0:
+            s = u'<body></body>'
+        doc = etree.parse(StringIO(s),parser)
+        if len(parts) > 1:
+            matter = yaml.load(parts[1])
+
+    return doc,matter
+    

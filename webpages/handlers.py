@@ -12,6 +12,6 @@ SITE = {
 }
 
 urls = [
-	('^(/[^/]*)$',CachedHandler),
+	('^(/.*)$',CachedHandler),
 ]
 
