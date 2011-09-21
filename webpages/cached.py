@@ -11,6 +11,7 @@ import redis
 
 from base import *
 from config import *
+from parts import *
 
 UNIT_SEP = "\x1F"
 REDIS_HOST = 'localhost'
@@ -66,7 +67,9 @@ class CachedHandler(tornado.web.RequestHandler):
 #TODO review tornado StaticFileHandler
 
 class FileExpander(object):
-
+	"""
+	Used to expand files in the site into the Redis cache.
+	"""
 	def __init__(self,base,relpath,config=None):
 		self.config = config
 		self.base = base
@@ -83,11 +86,18 @@ class FileExpander(object):
 
 		self.expandPage = False
 
+		# Load file into *header* and *content*
 		if self.ext in self.FILE_EXTENSIONS:
 			self.FILE_EXTENSIONS[self.ext](self,content)
 		else:
 			self._default_file(content)
 
+	def _get_published(self):
+		if "published" in self.header:
+			return self.header["published"]
+		return True
+
+	published = property(_get_published)
 
 	def _text_file(self,content):
 		header = {
@@ -133,6 +143,8 @@ class FileExpander(object):
 
 		import markdown2
 		extras = ["code-friendly","wiki-tables","cuddled-lists"]
+		if "markdown-extras" in self.header:
+			extras = self.header["markdown-extras"]
 		self.content = markdown2.markdown(rest,extras)
 		   
 	def _default_file(self,content):
@@ -155,31 +167,40 @@ class FileExpander(object):
 		".markdown" : _markdown_file,
 	}
 
-	def expandIfPage(self):
-		from parts import *
-		if self.expandPage:
-			self.content = expandPage(self.header["page"],self.content,config=self.config)
+	def cache(self,parts):
+		contentkey = BROWSER_SPECIFIC_CONTENT % (parts.browser_type , self.urlpath) 
+		headerkey = BROWSER_SPECIFIC_HEADER % (parts.browser_type , self.urlpath) 
 
-	def cache(self,browser_type):
-		contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , self.urlpath) 
-		REDIS[contentkey] = self.content
+		if not self.published:
+			if headerkey in REDIS:
+				REDIS.delete(headerkey)
+			if contentkey in REDIS:
+				REDIS.delete(contentkey)
+			return
+
+		if self.expandPage:
+			header = parts.expandHeader(self.header,config=self.config)
+			content = parts.expandPage(header,self.content,config=self.config)
+		else:
+			header = self.header
+			content = self.content
+
+		REDIS[contentkey] = content
 		REDIS.expire(contentkey,ONE_YEAR_IN_SECONDS)
-		headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , self.urlpath) 
-		REDIS[headerkey] = json.dumps(self.header)
+		REDIS[headerkey] = json.dumps(header)
 		REDIS.expire(headerkey,ONE_YEAR_IN_SECONDS)
 
 
 # populate with files that have an extension and do not start with _
 def populate_cache():
-	config = ApplicationConfig()
+	config = SiteConfig()
 
 	for relpath in listdir(site.SITE_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
 		if not relpath[0] == "_":
 			expander = FileExpander(site.SITE_DIR,relpath,config=config)
-			expander.expandIfPage()
-			if expander.ext != '': 
-				expander.cache("pocket")
-				expander.cache("tablet")
-				expander.cache("desktop")
+			if expander.ext != '':
+				for parts in browser_parts:
+					expander.cache(parts) 
 				print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext, expander.expandPage
+	# TODO track deleted files removing them from cache
 

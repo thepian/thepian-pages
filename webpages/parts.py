@@ -3,17 +3,35 @@ import os, stat, site
 from os.path import join, exists, abspath, splitext, split
 from BeautifulSoup import BeautifulSoup
 
-def expandPage(page_name,content,config=None):
-	page_path = join(site.PARTS_DIR, "%s.page.html" % page_name)
-	if not exists(page_path):
-		return content
+class BrowserParts(object):
 
-	with open(page_path,'rb') as f:
-		header,rest = config.split_header_and_utf8_content(f.read(),{})
-		soup = BeautifulSoup(rest)
-		dest = soup.findAll('article')[0]
-		print dir(dest)
-		dest.setString(content)
+	def __init__(self,browser_type):
+		self.browser_type = browser_type
 
-		return soup.prettify()
+	def expandHeader(self,header,config=None):
+		#TODO extend with parts matter
+		return header
 
+	def expandPage(self,header,content,config=None):
+
+		page_name = header["page"]
+		page_path = join(site.PARTS_DIR, "%s/%s.page.html" % (self.browser_type,page_name))
+		if not exists(page_path):
+			page_path = join(site.PARTS_DIR, "%s.page.html" % page_name)
+		if not exists(page_path):
+			return content
+
+		with open(page_path,'rb') as f:
+			header,rest = config.split_header_and_utf8_content(f.read(),{})
+			soup = BeautifulSoup(rest)
+			dest = soup.findAll('article')[0]
+			dest.setString(content)
+
+			return soup.prettify()
+
+
+browser_parts = [
+	BrowserParts('pocket'),
+	BrowserParts('tablet'),
+	BrowserParts('desktop'),
+]
