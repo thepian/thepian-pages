@@ -99,6 +99,24 @@ class FileExpander(object):
 
 	published = property(_get_published)
 
+	def _xml_file(self,content):
+		header = {
+			"Content-Type": "text/xml",
+		}
+		if self.name == "index":
+			self.urlpath = "/" + split(self.path)[0]
+		else:
+			self.urlpath = "/" + self.path
+
+		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		self.content = self.content.lstrip()
+		   
+		if "url" in self.header:
+			self.urlpath = "/" + self.header["url"]
+
+		if "page" in self.header:
+			self.expandPage = True
+
 	def _text_file(self,content):
 		header = {
 			"Content-Type": "text/plain",
@@ -112,7 +130,7 @@ class FileExpander(object):
 		   
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
-			
+
 		if "page" in self.header:
 			self.expandPage = True
 
@@ -171,6 +189,7 @@ class FileExpander(object):
 		".txt" : _text_file,
 		".text" : _text_file,
 		".html" : _html_file,
+		".xml" : _xml_file,
 		".md" : _markdown_file,
 		".mdown" : _markdown_file,
 		".markdown" : _markdown_file,
