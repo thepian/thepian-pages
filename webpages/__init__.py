@@ -1,3 +1,4 @@
+
 def start_server(script_path,script_name):
 	import tornado.httpserver
 	import tornado.web
@@ -50,3 +51,19 @@ def runserver():
 	from cached import populate_cache
 	populate_cache()
 	start_server(project_path,"runserver")
+
+def populatecache():
+	import os, fs, site
+	from os.path import join, exists
+
+	project_path = os.getcwd()
+	setattr(site, "PROJECT_DIR", project_path)
+	setattr(site, "SITE_DIR", project_path)
+	if exists(join(project_path,"_parts")):
+		setattr(site, "PARTS_DIR", join(project_path,"_parts"))
+	elif exists(join(project_path,"parts")):
+		setattr(site, "PARTS_DIR", join(project_path,"parts"))
+	setattr(site, "TEMPLATES_DIR", project_path)
+
+	from cached import populate_cache
+	populate_cache()

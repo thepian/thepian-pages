@@ -16,6 +16,7 @@ setup(name='thepian-pages',
       entry_points = {
         'console_scripts': [
           'runserver = webpages:runserver',
+          'populateserver=webpages:populatecache',
         ]
       },
       include_package_data=True,
