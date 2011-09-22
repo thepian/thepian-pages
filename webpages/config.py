@@ -21,6 +21,7 @@ class SiteConfig(object):
                 self.config = yaml.load(raw.decode("utf-8"))
             # print "site config", self.config
 
+        self._seedTime()
         self._updateMatching()
 
     def __getitem__(self,key):
@@ -32,6 +33,19 @@ class SiteConfig(object):
         self.config[key] = value
         self.configRe[key] = re.compile(r"{{\s*site.%s\s*}}" % key)
 
+    def _seedTime(self):
+        try:
+            from feed.date import rfc3339
+            from feed.date import rfc822
+            import time
+
+            now = time.time()
+            self.config["time"] = now
+            self.config["time_rfc3339"] = rfc3339.timestamp_from_tf(now)        
+            self.config["time_rfc822"] = rfc822.timestamp_from_tf(now)        
+        except:
+            pass
+
     def _updateMatching(self):
         for k in self.config.iterkeys():
             self.configRe[k] = re.compile(r"{{\s*site.%s\s*}}" % k)
@@ -39,7 +53,7 @@ class SiteConfig(object):
     def expand_site_variables(self,content):
         for k in self.config.iterkeys():
             #print self.configRe[k].findall(content)
-            content = self.configRe[k].sub(self.config[k],content)
+            content = self.configRe[k].sub(str(self.config[k]),content)
         return content
 
     def split_header_and_utf8_content(self,content,header):
