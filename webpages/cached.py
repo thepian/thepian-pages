@@ -110,6 +110,9 @@ class FileExpander(object):
 
 		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
 		   
+		if "url" in self.header:
+			self.urlpath = "/" + self.header["url"]
+			
 		if "page" in self.header:
 			self.expandPage = True
 
@@ -124,6 +127,9 @@ class FileExpander(object):
 
 		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
 		   
+		if "url" in self.header:
+			self.urlpath = "/" + self.header["url"]
+			
 		if "page" in self.header:
 			self.expandPage = True
 
@@ -138,6 +144,9 @@ class FileExpander(object):
 
 		self.header,rest = self.config.split_header_and_utf8_content(content,header)
 
+		if "url" in self.header:
+			self.urlpath = "/" + self.header["url"]
+			
 		if "page" in self.header:
 			self.expandPage = True
 
