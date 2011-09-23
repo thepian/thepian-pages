@@ -11,7 +11,7 @@ import redis
 
 from base import *
 from config import *
-from parts import *
+from browsers import *
 
 UNIT_SEP = "\x1F"
 REDIS_HOST = 'localhost'
@@ -70,13 +70,14 @@ class FileExpander(object):
 	"""
 	Used to expand files in the site into the Redis cache.
 	"""
-	def __init__(self,base,relpath,config=None):
+	def __init__(self,base,relpath,prefix=None,config=None):
 		self.config = config
+		self.prefix = prefix
 		self.base = base
 		self.path = relpath
 		self.name, self.ext = splitext(split(relpath)[1])
 
-		path = abspath(join(site.SITE_DIR,relpath))
+		path = abspath(join(base,relpath))
 		stat_result = os.stat(path)
 		self.modified = datetime.datetime.fromtimestamp(stat_result[stat.ST_MTIME])
 
@@ -84,6 +85,7 @@ class FileExpander(object):
 		with open(path, "rb") as f:
 			content = f.read()
 
+		self.expandScss = False
 		self.expandPage = False
 
 		# Load file into *header* and *content*
@@ -99,6 +101,22 @@ class FileExpander(object):
 
 	published = property(_get_published)
 
+	def _scss_file(self,content):
+		header = {
+			"Content-Type": "text/css",
+		}
+		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		   
+		if "url" in self.header:
+			self.urlpath = "/" + self.header["url"]
+		else:
+			self.urlpath = "/%s.css" % splitext(self.path)[0]
+
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+
+		self.expandScss = True
+
 	def _xml_file(self,content):
 		header = {
 			"Content-Type": "text/xml",
@@ -113,6 +131,9 @@ class FileExpander(object):
 		   
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
+
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
 		if "page" in self.header:
 			self.expandPage = True
@@ -131,6 +152,9 @@ class FileExpander(object):
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+
 		if "page" in self.header:
 			self.expandPage = True
 
@@ -148,6 +172,9 @@ class FileExpander(object):
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 			
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+
 		if "page" in self.header:
 			self.expandPage = True
 
@@ -165,6 +192,9 @@ class FileExpander(object):
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 			
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+
 		if "page" in self.header:
 			self.expandPage = True
 
@@ -186,6 +216,7 @@ class FileExpander(object):
 		self.content = content
 
 	FILE_EXTENSIONS = {
+		".scss" : _scss_file,
 		".txt" : _text_file,
 		".text" : _text_file,
 		".html" : _html_file,
@@ -195,9 +226,9 @@ class FileExpander(object):
 		".markdown" : _markdown_file,
 	}
 
-	def cache(self,parts):
-		contentkey = BROWSER_SPECIFIC_CONTENT % (parts.browser_type , self.urlpath) 
-		headerkey = BROWSER_SPECIFIC_HEADER % (parts.browser_type , self.urlpath) 
+	def cache(self,browser):
+		contentkey = BROWSER_SPECIFIC_CONTENT % (browser.browser_type , self.urlpath) 
+		headerkey = BROWSER_SPECIFIC_HEADER % (browser.browser_type , self.urlpath) 
 
 		if not self.published:
 			if headerkey in REDIS:
@@ -206,9 +237,12 @@ class FileExpander(object):
 				REDIS.delete(contentkey)
 			return
 
-		if self.expandPage:
-			header = parts.expandHeader(self.header,config=self.config)
-			content = parts.expandPage(header,self.content,config=self.config)
+		if self.expandScss:
+			header = browser.expandHeader(self.header,config=self.config)
+			content = browser.expandScss(header,self.content,config=self.config)
+		elif self.expandPage:
+			header = browser.expandHeader(self.header,config=self.config)
+			content = browser.expandPage(header,self.content,config=self.config)
 		else:
 			header = self.header
 			content = self.content
@@ -223,12 +257,34 @@ class FileExpander(object):
 def populate_cache():
 	config = SiteConfig()
 
+	import scss
+	setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+	""" TODO:
+LOAD_PATHS = os.path.join(PROJECT_ROOT, 'sass/frameworks/')
+# Assets path, where new sprite files are created:
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
+# Assets path, where new sprite files are created:
+ASSETS_ROOT = os.path.join(PROJECT_ROOT, 'static/assets/')
+# Urls for the static and assets:
+STATIC_URL = '/static/'
+ASSETS_URL = '/static/assets/'
+"""
+
+
+	for relpath in listdir(site.SCSS_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system,filters.fnmatch("*.scss"))):
+		if not relpath[0] == "_":
+			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
+			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+			for browser in browsers:
+				expander.cache(browser) 
+			print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext, expander.expandPage
+
 	for relpath in listdir(site.SITE_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
 		if not relpath[0] == "_":
 			expander = FileExpander(site.SITE_DIR,relpath,config=config)
 			if expander.ext != '':
-				for parts in browser_parts:
-					expander.cache(parts) 
+				for browser in browsers:
+					expander.cache(browser) 
 				print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext, expander.expandPage
 	# TODO track deleted files removing them from cache
 

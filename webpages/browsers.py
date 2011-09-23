@@ -2,8 +2,10 @@ from __future__ import with_statement
 import os, stat, site
 from os.path import join, exists, abspath, splitext, split
 from BeautifulSoup import BeautifulSoup
+from scss import Scss
 
-class BrowserParts(object):
+
+class BrowserSpecific(object):
 
 	def __init__(self,browser_type):
 		self.browser_type = browser_type
@@ -29,9 +31,13 @@ class BrowserParts(object):
 
 			return soup.prettify()
 
+	def expandScss(self,header,content,config=None):
 
-browser_parts = [
-	BrowserParts('pocket'),
-	BrowserParts('tablet'),
-	BrowserParts('desktop'),
+		css = Scss()
+		return css.compile(content)
+
+browsers = [
+	BrowserSpecific('pocket'),
+	BrowserSpecific('tablet'),
+	BrowserSpecific('desktop'),
 ]
