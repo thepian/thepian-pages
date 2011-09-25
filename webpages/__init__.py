@@ -49,7 +49,7 @@ def apply_site_dirs():
 		setattr(site, "PARTS_DIR", join(project_path,"parts"))
 
 def runserver():
-	import fs, optparse
+	import fs, optparse, daemon
 	from os.path import join, exists
 	from base import enable_logging
 	from cached import populate_cache
@@ -64,7 +64,13 @@ def runserver():
 	enable_logging(options)
 
 	populate_cache()
-	start_server(site.PROJECT_DIR,"runserver",options)
+	pid = os.fork()
+	if pid == 0: 
+		# The Child Process
+		with daemon.DaemonContext():
+			start_server(site.PROJECT_DIR,"runserver",options)
+	else:
+		print "Forked a Daemon as", pid
 
 def populatecache():
 	import fs, optparse
