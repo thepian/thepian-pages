@@ -1,4 +1,5 @@
-import re
+import sys, site, re
+from os.path import join
 
 class ObjectLike(object):
 
@@ -40,4 +41,40 @@ def get_browser_type(userAgent):
         return "pocket"
 
     return "desktop"
+
+def enable_logging(options):
+    """
+    options.debug - 
+    """
+    import logging
+    
+    if options.debug:
+        # print 'logging to testing.log', structure.DEFAULT_HOSTNAME
+        LOG_FILENAME = join(site.PROJECT_DIR,'testing.log')
+        logging.basicConfig(
+            format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+            datefmt="%m-%d %H:%M",
+            filename=LOG_FILENAME,
+            filemode="w",
+            level=logging.DEBUG)
+
+    else:
+        import logging.handlers
+
+        logger = logging.getLogger('info')
+        logger.setLevel(logging.ERROR)
+
+        scss_logger = logging.getLogger("scss")
+        scss_logger.setLevel(logging.ERROR)
+
+        if sys.platform == "darwin":
+            # Apple made 10.5 more secure by disabling network syslog:
+            address = "/var/run/syslog"
+        else:
+            address = ('localhost', 514)
+
+        print 'SysLog handler on webpages and scss'
+        syslog = logging.handlers.SysLogHandler(address)
+        logger.addHandler(syslog)
+        scss_logger.addHandler(syslog)
 

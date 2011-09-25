@@ -1,15 +1,14 @@
 from __future__ import with_statement
 
-import os, stat
+import os, stat, logging, site
 from os.path import join, exists, abspath, splitext, split
 from fs import listdir, filters
-import hashlib, json, datetime, time, site
+import hashlib, json, datetime, time
 import mimetypes
 
-import tornado.web
 import redis
 
-from base import *
+#from base import *
 from config import *
 from browsers import *
 
@@ -25,46 +24,6 @@ IN_A_YEAR_STAMP = time.time() + ONE_YEAR_IN_SECONDS
 
 BROWSER_SPECIFIC_HEADER = "header:%s%s"
 BROWSER_SPECIFIC_CONTENT = "content:%s%s"
-
-class CachedHandler(tornado.web.RequestHandler):
-    
-    def head(self,path,browser_type=None):
-    	return self.get(path,browser_type,include_body=False)
-
-    def get(self,path,browser_type=None,include_body=True):
-        if not browser_type:
-            browser_type = get_browser_type( self.request.headers['User-Agent'] )
-
-        contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , path) 
-        headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , path) 
-    	if contentkey in REDIS:
-    		#TODO etag and headers
-    		#TODO url type, inject state script
-    		header = json.loads(REDIS[headerkey])
-    		for hn in self.HTTP_HEADER_NAMES:
-    			if hn in header:
-    				self.set_header(hn,header[hn])
-
-    		if not include_body:
-	    		self.flush()
-    			return
-    		self.write(REDIS[contentkey])
-    		self.flush()
-    	else:
-	        print path, contentkey, headerkey
-    		raise tornado.web.HTTPError(404, "We couldn't find requested information")
-
-    HTTP_HEADER_NAMES = [
-    	"Content-Type",
-    	"Content-Location",		# Do browser care?
-    	"Content-Disposition", # force download dialog
-    	"Content-Language",
-    	"Last-Modified",
-    	"Expires",
-    	"Location",			# for redirect
-    ]
-     
-#TODO review tornado StaticFileHandler
 
 class FileExpander(object):
 	"""
@@ -90,9 +49,12 @@ class FileExpander(object):
 
 		# Load file into *header* and *content*
 		if self.ext in self.FILE_EXTENSIONS:
-			self.FILE_EXTENSIONS[self.ext](self,content)
+			self.FILE_EXTENSIONS[self.ext](self,self.path)
 		else:
-			self._default_file(content)
+			self._default_file(self.path)
+
+	def __repr__(self):
+		return "%s %s %s %s" % (self.urlpath,self.name,self.ext,self.header)
 
 	def _get_published(self):
 		if "published" in self.header:
@@ -101,11 +63,17 @@ class FileExpander(object):
 
 	published = property(_get_published)
 
-	def _scss_file(self,content):
+	def _get_header_and_content(self,relpath,defaultheader):
+		content = None
+		with open(abspath(join(self.base,relpath)), "rb") as f:
+			content = f.read()
+		return self.config.split_header_and_utf8_content(content,defaultheader)
+
+	def _scss_file(self,relpath):
 		header = {
 			"Content-Type": "text/css",
 		}
-		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		self.header,self.content = self._get_header_and_content(relpath,header)
 		   
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
@@ -117,7 +85,7 @@ class FileExpander(object):
 
 		self.expandScss = True
 
-	def _xml_file(self,content):
+	def _xml_file(self,relpath):
 		header = {
 			"Content-Type": "text/xml",
 		}
@@ -126,7 +94,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + self.path
 
-		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		self.header,self.content = self._get_header_and_content(relpath,header)
 		self.content = self.content.lstrip()
 		   
 		if "url" in self.header:
@@ -138,16 +106,17 @@ class FileExpander(object):
 		if "page" in self.header:
 			self.expandPage = True
 
-	def _text_file(self,content):
+	def _text_file(self,relpath):
 		header = {
 			"Content-Type": "text/plain",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
+			if self.urlpath[-1] != "/": self.urlpath += "/"
 		else:
-			self.urlpath = "/" + splitext(self.path)[0] + "/"
+			self.urlpath = "/" + self.path
 
-		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		self.header,self.content = self._get_header_and_content(relpath,header)
 		   
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
@@ -158,16 +127,17 @@ class FileExpander(object):
 		if "page" in self.header:
 			self.expandPage = True
 
-	def _html_file(self,content):
+	def _html_file(self,relpath):
 		header = {
 			"Content-Type": "text/html",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
+			if self.urlpath[-1] != "/": self.urlpath += "/"
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
 
-		self.header,self.content = self.config.split_header_and_utf8_content(content,header)
+		self.header,self.content = self._get_header_and_content(relpath,header)
 		   
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
@@ -178,16 +148,17 @@ class FileExpander(object):
 		if "page" in self.header:
 			self.expandPage = True
 
-	def _markdown_file(self,content):
+	def _markdown_file(self,relpath):
 		header = {
 			"Content-Type": "text/html",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
+			if self.urlpath[-1] != "/": self.urlpath += "/"
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
 
-		self.header,rest = self.config.split_header_and_utf8_content(content,header)
+		self.header,rest = self._get_header_and_content(relpath,header)
 
 		if "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
@@ -204,13 +175,16 @@ class FileExpander(object):
 			extras = self.header["markdown-extras"]
 		self.content = markdown2.markdown(rest,extras)
 		   
-	def _default_file(self,content):
+	def _default_file(self,relpath):
 		header = {
 			"Content-Type": "text/plain",
 		}
 		mime_type,encoding = mimetypes.guess_type(self.path)
 		if mime_type:
 			header["Content-Type"] = mime_type
+		content = None
+		with open(abspath(join(self.base,relpath)), "rb") as f:
+			content = f.read()
 		self.urlpath = "/" + self.path
 		self.header = header
 		self.content = content
@@ -238,8 +212,13 @@ class FileExpander(object):
 			return
 
 		if self.expandScss:
-			header = browser.expandHeader(self.header,config=self.config)
-			content = browser.expandScss(header,self.content,config=self.config)
+			relpath = join(browser.browser_type,self.path)
+			if exists(join(self.base,relpath)):
+				header,content = self._get_header_and_content(relpath,self.header)
+			else:
+				header,content = self.header,self.content
+			header = browser.expandHeader(header,config=self.config)
+			content = browser.expandScss(header,content,config=self.config)
 		elif self.expandPage:
 			header = browser.expandHeader(self.header,config=self.config)
 			content = browser.expandPage(header,self.content,config=self.config)
@@ -252,6 +231,25 @@ class FileExpander(object):
 		REDIS[headerkey] = json.dumps(header)
 		REDIS.expire(headerkey,ONE_YEAR_IN_SECONDS)
 
+from fs import filters as fs_filters, walk
+
+def listdir(dir_path,filters=(fs_filters.no_hidden,fs_filters.no_system),full_path=False,recursed=False,followlinks=True):
+    if recursed:
+    	prefix = len(dir_path)
+    	if dir_path[-1] != "/": 
+	    	prefix += 1
+        r = []
+        for top,dirs,nondirs in walk(dir_path,use_nlink = followlinks and 2 or 1):
+            if full_path:
+                r.extend([os.path.join(top,nd) for nd in nondirs])
+            else:
+                r.extend([os.path.join(top[prefix:],nd) for nd in nondirs])
+        return r
+    if full_path:
+        return [os.path.join(dir_path,name) 
+                for name in os.listdir(dir_path) if fs_filters.check_filters(dir_path, name, os.lstat(os.path.join(dir_path,name)), filters)]
+    return [name for name in os.listdir(dir_path) if fs_filters.check_filters(dir_path,name,os.lstat(os.path.join(dir_path,name)),filters)]
+ 
 
 # populate with files that have an extension and do not start with _
 def populate_cache():
@@ -277,14 +275,14 @@ ASSETS_URL = '/static/assets/'
 			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 			for browser in browsers:
 				expander.cache(browser) 
-			print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext, expander.expandPage
+			logging.info("Cached %s as %s" % (relpath,repr(expander)))
 
-	for relpath in listdir(site.SITE_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
+	for relpath in listdir(site.SITE_DIR,recursed=True,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
 		if not relpath[0] == "_":
 			expander = FileExpander(site.SITE_DIR,relpath,config=config)
 			if expander.ext != '':
 				for browser in browsers:
 					expander.cache(browser) 
-				print "Cached ",relpath, "as", expander.urlpath, expander.header, expander.name, expander.ext, expander.expandPage
+				logging.info("Cached %s as %s" % (relpath,repr(expander)))
 	# TODO track deleted files removing them from cache
 
