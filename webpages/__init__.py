@@ -1,19 +1,19 @@
+import sys, os, site, logging
 
-def start_server(script_path,script_name):
+def start_server(script_path,script_name,options):
 	import tornado.httpserver
 	import tornado.web
 	import tornado.ioloop
 	import tornado.autoreload
-	import site
 
-	from handlers import PORT,SITE,urls
+	from handlers import urls
 	
-	print 'Running Server on port %s' % PORT
+	logging.info('Running Server on port %s' % options.port) 
 
 	ioloop = tornado.ioloop.IOLoop.instance()
 
 	settings = dict(
-		debug=True,
+		debug=options.debug,
 		template_path=site.TEMPLATES_DIR,
 		static_path=site.SITE_DIR,
         xsrf_cookies=True,
@@ -25,13 +25,13 @@ def start_server(script_path,script_name):
 		setattr(application,"ioloop",ioloop) # for the stop-server button
 	http_server = tornado.httpserver.HTTPServer(application)
 
-	http_server.listen(SITE["port"])
+	http_server.listen(options.port)
 	
 	tornado.autoreload.start(io_loop=ioloop)
 	ioloop.start()
 
 def apply_site_dirs():
-	import os, fs, site
+	import fs
 	from os.path import join, exists
 
 	project_path = os.getcwd()
@@ -49,22 +49,25 @@ def apply_site_dirs():
 		setattr(site, "PARTS_DIR", join(project_path,"parts"))
 
 def runserver():
-	import os, fs, site
+	import fs, optparse
 	from os.path import join, exists
+	from base import enable_logging
+	from cached import populate_cache
+
+	parser = optparse.OptionParser()
+	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
+	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
+	parser.add_option("--port", dest="port", default=4444)
+	options, remainder = parser.parse_args()
 
 	apply_site_dirs()
+	enable_logging(options)
 
-	import logging
-	# print 'logging to testing.log', structure.DEFAULT_HOSTNAME
-	LOG_FILENAME = join(site.PROJECT_DIR,'testing.log')
-	logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
-
-	from cached import populate_cache
 	populate_cache()
-	start_server(site.PROJECT_DIR,"runserver")
+	start_server(site.PROJECT_DIR,"runserver",options)
 
 def populatecache():
-	import os, fs, site
+	import fs, optparse
 	from os.path import join, exists
 
 	apply_site_dirs()
