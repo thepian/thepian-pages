@@ -7,10 +7,11 @@ from os.path import exists,join
 class SiteConfig(object):
 
     defaults = {
+        "domain": "localhost",
         "section-content-class": "section-content",
     }
     
-    def __init__(self):
+    def __init__(self,options):
         self.config = {}
         self.configRe = {}
 
@@ -19,8 +20,10 @@ class SiteConfig(object):
             raw = f.read()
             if raw:
                 self.config = yaml.load(raw.decode("utf-8"))
-            # print "site config", self.config
 
+        self.config["debug"] = options.debug
+        if hasattr(options,"pygments"):
+            self.config["pygments"] = options.pygments
         self._seedTime()
         self._updateMatching()
 

@@ -14,8 +14,9 @@ class CachedHandler(tornado.web.RequestHandler):
         if not browser_type:
             browser_type = get_browser_type( self.request.headers['User-Agent'] )
 
-        contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , path) 
-        headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , path) 
+        domain = self.request.host.split(':')[0]
+        contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , domain, path) 
+        headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , domain, path) 
     	if contentkey in REDIS:
     		#TODO etag and headers
     		#TODO url type, inject state script

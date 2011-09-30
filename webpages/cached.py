@@ -22,8 +22,8 @@ REDIS = redis.Redis(REDIS_HOST, REDIS_PORT, db=1)
 ONE_YEAR_IN_SECONDS = 365 * 24 * 3600
 IN_A_YEAR_STAMP = time.time() + ONE_YEAR_IN_SECONDS
 
-BROWSER_SPECIFIC_HEADER = "header:%s%s"
-BROWSER_SPECIFIC_CONTENT = "content:%s%s"
+BROWSER_SPECIFIC_HEADER = "header:%s:%s%s"
+BROWSER_SPECIFIC_CONTENT = "content:%s:%s%s"
 
 class FileExpander(object):
 	"""
@@ -201,8 +201,12 @@ class FileExpander(object):
 	}
 
 	def cache(self,browser):
-		contentkey = BROWSER_SPECIFIC_CONTENT % (browser.browser_type , self.urlpath) 
-		headerkey = BROWSER_SPECIFIC_HEADER % (browser.browser_type , self.urlpath) 
+		if self.config["debug"]:
+			domain = "localhost"
+		else:
+			domain = self.config["domain"]
+		contentkey = BROWSER_SPECIFIC_CONTENT % (browser.browser_type , domain, self.urlpath) 
+		headerkey = BROWSER_SPECIFIC_HEADER % (browser.browser_type , domain, self.urlpath) 
 
 		if not self.published:
 			if headerkey in REDIS:
@@ -252,8 +256,8 @@ def listdir(dir_path,filters=(fs_filters.no_hidden,fs_filters.no_system),full_pa
  
 
 # populate with files that have an extension and do not start with _
-def populate_cache():
-	config = SiteConfig()
+def populate_cache(options):
+	config = SiteConfig(options)
 
 	import scss
 	setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
