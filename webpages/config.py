@@ -9,6 +9,7 @@ class SiteConfig(object):
     defaults = {
         "domain": "localhost",
         "section-content-class": "section-content",
+        "exclude": [],
     }
     
     def __init__(self,options):
@@ -35,6 +36,15 @@ class SiteConfig(object):
     def __setitem__(self,key,value):
         self.config[key] = value
         self.configRe[key] = re.compile(r"{{\s*site.%s\s*}}" % key)
+
+    def get_active_domain(self):
+        if self.config["debug"]:
+            return "localhost"
+        else:
+            return self.config["domain"]
+
+    active_domain = property(get_active_domain)
+
 
     def _seedTime(self):
         try:
@@ -63,7 +73,7 @@ class SiteConfig(object):
 
         if content[:3] == "---":
             parts = content.split("---")
-            matter = yaml.load(parts[1])
+            matter = yaml.load(parts[1]) or {}
             for key in header.keys():
                 matter[key] = header[key]
             encoding = 'utf-8'
@@ -86,20 +96,3 @@ class SiteConfig(object):
 
         return matter
 
-def load_html(path,parser):
-    doc = None
-    matter = None
-
-    with codecs.open(path,"r","utf-8") as f:
-        s = f.read()
-        parts = s.split("---")
-        if len(parts) == 3 and len(parts[0]) == 0:
-            s = parts[-1]
-        if len(s) == 0:
-            s = u'<body></body>'
-        doc = etree.parse(StringIO(s),parser)
-        if len(parts) > 1:
-            matter = yaml.load(parts[1])
-
-    return doc,matter
-    

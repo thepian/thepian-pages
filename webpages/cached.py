@@ -8,6 +8,7 @@ import mimetypes
 
 import redis
 
+from base import ObjectLike
 #from base import *
 from config import *
 from browsers import *
@@ -22,6 +23,8 @@ REDIS = redis.Redis(REDIS_HOST, REDIS_PORT, db=1)
 ONE_YEAR_IN_SECONDS = 365 * 24 * 3600
 IN_A_YEAR_STAMP = time.time() + ONE_YEAR_IN_SECONDS
 
+SITELISTS = "sitelist:%s"
+SITELIST = "sitelist:%s%s"
 BROWSER_SPECIFIC_HEADER = "header:%s:%s%s"
 BROWSER_SPECIFIC_CONTENT = "content:%s:%s%s"
 
@@ -45,7 +48,9 @@ class FileExpander(object):
 			content = f.read()
 
 		self.expandScss = False
-		self.expandPage = False
+		self.expandDocument = False
+
+		self.domain = self.config.active_domain
 
 		# Load file into *header* and *content*
 		if self.ext in self.FILE_EXTENSIONS:
@@ -103,8 +108,8 @@ class FileExpander(object):
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
-		if "page" in self.header:
-			self.expandPage = True
+		if "document" in self.header and self.header["document"]:
+			self.expandDocument = True
 
 	def _text_file(self,relpath):
 		header = {
@@ -124,8 +129,8 @@ class FileExpander(object):
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
-		if "page" in self.header:
-			self.expandPage = True
+		if "document" in self.header:
+			self.expandDocument = True
 
 	def _html_file(self,relpath):
 		header = {
@@ -145,8 +150,8 @@ class FileExpander(object):
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
-		if "page" in self.header:
-			self.expandPage = True
+		if "document" in self.header:
+			self.expandDocument = True
 
 	def _markdown_file(self,relpath):
 		header = {
@@ -166,8 +171,8 @@ class FileExpander(object):
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
-		if "page" in self.header:
-			self.expandPage = True
+		if "document" in self.header:
+			self.expandDocument = True
 
 		import markdown2
 		extras = ["code-friendly","wiki-tables","cuddled-lists"]
@@ -189,6 +194,25 @@ class FileExpander(object):
 		self.header = header
 		self.content = content
 
+	def _appcache_file(self,relpath):
+		header = {
+			"Content-Type": "text/cache-manifest",
+		}
+		mime_type,encoding = mimetypes.guess_type(self.path)
+		if mime_type:
+			header["Content-Type"] = mime_type
+
+		self.header,rest = self._get_header_and_content(relpath,header)
+		self.content = rest.lstrip()
+
+		self.urlpath = "/" + self.path
+		if "url" in self.header:
+			self.urlpath = "/" + self.header["url"]
+			
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+
+
 	FILE_EXTENSIONS = {
 		".scss" : _scss_file,
 		".txt" : _text_file,
@@ -198,15 +222,25 @@ class FileExpander(object):
 		".md" : _markdown_file,
 		".mdown" : _markdown_file,
 		".markdown" : _markdown_file,
+		".appcache" : _appcache_file,
 	}
 
+	def update_lists(self,header,lists):
+		if "appcache" in header:
+			appcache = header["appcache"].split(" ")
+			for name in appcache:
+				listname = "%s_appcache" % name
+				REDIS.sadd(SITELISTS % self.domain,listname)
+				cachelistkey = SITELIST % (self.domain,listname)
+				if "offline" in lists:
+					offline = lists["offline"]
+					for path in offline:
+						REDIS.sadd(cachelistkey,path)
+
+
 	def cache(self,browser):
-		if self.config["debug"]:
-			domain = "localhost"
-		else:
-			domain = self.config["domain"]
-		contentkey = BROWSER_SPECIFIC_CONTENT % (browser.browser_type , domain, self.urlpath) 
-		headerkey = BROWSER_SPECIFIC_HEADER % (browser.browser_type , domain, self.urlpath) 
+		contentkey = BROWSER_SPECIFIC_CONTENT % (browser.browser_type , self.domain, self.urlpath) 
+		headerkey = BROWSER_SPECIFIC_HEADER % (browser.browser_type , self.domain, self.urlpath) 
 
 		if not self.published:
 			if headerkey in REDIS:
@@ -223,21 +257,49 @@ class FileExpander(object):
 				header,content = self.header,self.content
 			header = browser.expandHeader(header,config=self.config)
 			content = browser.expandScss(header,content,config=self.config)
-		elif self.expandPage:
+			self.update_lists(header,{ "offline": [self.urlpath] })
+		elif self.expandDocument:
 			header = browser.expandHeader(self.header,config=self.config)
-			content = browser.expandPage(header,self.content,config=self.config)
+			content, lists = browser.expandDocument(header,self.content,config=self.config)
+			self.update_lists(header,lists)
 		else:
 			header = self.header
 			content = self.content
+			self.update_lists(header,{ "offline": [self.urlpath] })
 
 		REDIS[contentkey] = content
 		REDIS.expire(contentkey,ONE_YEAR_IN_SECONDS)
 		REDIS[headerkey] = json.dumps(header)
 		REDIS.expire(headerkey,ONE_YEAR_IN_SECONDS)
 
+def wipe_sitelists(domain):
+	#print "wiping ",domain,REDIS.smembers(SITELISTS % domain)
+	for name in REDIS.smembers(SITELISTS % domain):
+		cachelistkey = SITELIST % (domain,name)
+		REDIS.delete(cachelistkey)
+	REDIS.delete(SITELISTS % domain)
+
+def build_sitelists(domain):
+	lists = {}
+	for name in REDIS.smembers(SITELISTS % domain):
+		cachelistkey = SITELIST % (domain,name)
+		value = u"\n".join(REDIS.smembers(cachelistkey))
+		lists[name] = value
+	return ObjectLike(lists)
+
+def build_template_vars(domain):
+	lists = {}
+	for name in REDIS.smembers(SITELISTS % domain):
+		cachelistkey = SITELIST % (domain,name)
+		value = u"\n".join(REDIS.smembers(cachelistkey))
+		lists["list.%s" % name] = value
+	return lists
+
+
 from fs import filters as fs_filters, walk
 
 def listdir(dir_path,filters=(fs_filters.no_hidden,fs_filters.no_system),full_path=False,recursed=False,followlinks=True):
+    #TODO exclude_paths_list, list of rel paths to exclude/skip
     if recursed:
     	prefix = len(dir_path)
     	if dir_path[-1] != "/": 
@@ -271,15 +333,17 @@ ASSETS_ROOT = os.path.join(PROJECT_ROOT, 'static/assets/')
 STATIC_URL = '/static/'
 ASSETS_URL = '/static/assets/'
 """
+	exclude = set(config["exclude"]) #TODO convert to path list and pass to listdir
 
+	wipe_sitelists(config.active_domain)
 
 	for relpath in listdir(site.SCSS_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system,filters.fnmatch("*.scss"))):
-		if not relpath[0] == "_":
+		if not relpath[0] == "_" or relpath in exclude:
 			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
 			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 			for browser in browsers:
 				expander.cache(browser) 
-			logging.info("Cached %s as %s" % (relpath,repr(expander)))
+			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 
 	for relpath in listdir(site.SITE_DIR,recursed=True,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
 		if not relpath[0] == "_":
@@ -287,6 +351,6 @@ ASSETS_URL = '/static/assets/'
 			if expander.ext != '':
 				for browser in browsers:
 					expander.cache(browser) 
-				logging.info("Cached %s as %s" % (relpath,repr(expander)))
+				logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 	# TODO track deleted files removing them from cache
 

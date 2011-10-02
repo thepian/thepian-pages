@@ -57,26 +57,37 @@ def runserver():
 	parser = optparse.OptionParser()
 	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
 	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
+	parser.add_option("--nofork", dest="fork", default=True, action="store_false")
 	parser.add_option("--port", dest="port", default=4444)
 	options, remainder = parser.parse_args()
 
 	apply_site_dirs()
 	enable_logging(options)
 
-	populate_cache()
-	pid = os.fork()
-	if pid == 0: 
-		# The Child Process
-		with daemon.DaemonContext():
-			start_server(site.PROJECT_DIR,"runserver",options)
+	populate_cache(options)
+	if options.fork:
+		pid = os.fork()
+		if pid == 0: 
+			# The Child Process
+			with daemon.DaemonContext():
+				start_server(site.PROJECT_DIR,"runserver",options)
+		else:
+			print "Forked a Daemon as", pid
 	else:
-		print "Forked a Daemon as", pid
+		start_server(site.PROJECT_DIR,"runserver",options)
 
 def populatecache():
 	import fs, optparse
 	from os.path import join, exists
+	from base import enable_logging
+	from cached import populate_cache
+
+	parser = optparse.OptionParser()
+	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
+	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
+	options, remainder = parser.parse_args()
 
 	apply_site_dirs()
+	enable_logging(options)
 
-	from cached import populate_cache
-	populate_cache()
+	populate_cache(options)

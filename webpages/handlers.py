@@ -4,44 +4,51 @@ from base import get_browser_type
 from cached import *
 
 import tornado.web
+import tornado.template
 
 class CachedHandler(tornado.web.RequestHandler):
     
     def head(self,path,browser_type=None):
-    	return self.get(path,browser_type,include_body=False)
+        return self.get(path,browser_type,include_body=False)
 
     def get(self,path,browser_type=None,include_body=True):
         if not browser_type:
             browser_type = get_browser_type( self.request.headers['User-Agent'] )
 
         domain = self.request.host.split(':')[0]
+        if domain[:7] == "10.0.0.":
+            domain = "localhost"
         contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , domain, path) 
         headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , domain, path) 
-    	if contentkey in REDIS:
-    		#TODO etag and headers
-    		#TODO url type, inject state script
-    		header = json.loads(REDIS[headerkey])
-    		for hn in self.HTTP_HEADER_NAMES:
-    			if hn in header:
-    				self.set_header(hn,header[hn])
+        if contentkey in REDIS:
+            #TODO etag and headers
+            #TODO url type, inject state script
+            header = json.loads(REDIS[headerkey])
+            for hn in self.HTTP_HEADER_NAMES:
+                if hn in header:
+                    self.set_header(hn,header[hn])
 
-    		if not include_body:
-	    		self.flush()
-    			return
-    		self.write(REDIS[contentkey])
-    		self.flush()
-    	else:
-	        logging.debug("404: %s" % path)
-    		raise tornado.web.HTTPError(404, "We couldn't find requested information")
+            if not include_body:
+                self.flush()
+                return
+
+            content = REDIS[contentkey]
+            lists = build_sitelists(domain)
+            t = tornado.template.Template(content)                
+            self.write(t.generate(list=lists))
+            self.flush()
+        else:
+            logging.debug("404: %s" % path)
+            raise tornado.web.HTTPError(404, "We couldn't find requested information")
 
     HTTP_HEADER_NAMES = [
-    	"Content-Type",
-    	"Content-Location",		# Do browser care?
-    	"Content-Disposition", # force download dialog
-    	"Content-Language",
-    	"Last-Modified",
-    	"Expires",
-    	"Location",			# for redirect
+        "Content-Type",
+        "Content-Location",     # Do browser care?
+        "Content-Disposition", # force download dialog
+        "Content-Language",
+        "Last-Modified",
+        "Expires",
+        "Location",         # for redirect
     ]
      
 #TODO review tornado StaticFileHandler
@@ -49,6 +56,6 @@ class CachedHandler(tornado.web.RequestHandler):
 
 
 urls = [
-	('^(/.*)$',CachedHandler),
+    ('^(/.*)$',CachedHandler),
 ]
 
