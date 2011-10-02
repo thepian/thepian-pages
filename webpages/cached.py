@@ -233,8 +233,6 @@ class FileExpander(object):
 				REDIS.sadd(SITELISTS % self.domain,listname)
 				cachelistkey = SITELIST % (self.domain,listname)
 				if "offline" in lists:
-					offline = lists["offline"]
-					for path in offline:
 						REDIS.sadd(cachelistkey,path)
 
 
@@ -283,16 +281,20 @@ def build_sitelists(domain):
 	lists = {}
 	for name in REDIS.smembers(SITELISTS % domain):
 		cachelistkey = SITELIST % (domain,name)
-		value = u"\n".join(REDIS.smembers(cachelistkey))
-		lists[name] = value
+		if cachelistkey in REDIS:
+			value = u"\n".join(REDIS.smembers(cachelistkey))
+			lists[name] = value
+		else:
+			lists[name] = ''
 	return ObjectLike(lists)
 
 def build_template_vars(domain):
 	lists = {}
 	for name in REDIS.smembers(SITELISTS % domain):
 		cachelistkey = SITELIST % (domain,name)
-		value = u"\n".join(REDIS.smembers(cachelistkey))
-		lists["list.%s" % name] = value
+		if cachelistkey in REDIS:
+			value = u"\n".join(REDIS.smembers(cachelistkey))
+			lists["list.%s" % name] = value
 	return lists
 
 

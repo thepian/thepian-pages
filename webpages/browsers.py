@@ -42,6 +42,8 @@ class PartDocument(object):
 			part_content = self.parent.expandSoup(self.rest).prettify()
 
 		soup = BeautifulSoup(part_content)
+
+		# insert body / content
 		content_tag = "content-tag" in self.header and self.header["content-tag"] or "body"
 		dest = soup.findAll(content_tag)[0]
 		text = NavigableString(content)
@@ -58,6 +60,10 @@ class PartDocument(object):
 			r[k] = self.header[k]
 		if header:
 			for k in header: r[k] = header[k]
+
+		if "lang" in r:
+			r["Content-Language"] = r["lang"]
+
 		return r
 	
 class BrowserSpecific(object):
@@ -76,6 +82,30 @@ class BrowserSpecific(object):
 		part = self.partDocument(header["document"],config)
 		soup = part.expandSoup(content)
 		header = part.get_collapsed_header(header=header)
+
+		# fill in meta tags
+		if "description" in header:
+			for desc in select(soup,"meta[name=description]"):
+				desc["content"] = header["description"]
+		if "author" in header:
+			for desc in select(soup,"meta[name=author]"):
+				desc["content"] = header["author"]
+		if "title" in header:
+			for t in select(soup,"title"):
+				t.setString(header["title"])
+
+		if config["appcache"] == False:
+			for h in select(soup,"html"):
+				del h["manifest"]
+		elif "manifest" in header:
+			for h in select(soup,"html"):
+				h["manifest"] = header["manifest"]
+
+		if "Content-Language" in header:
+			for h in select(soup,"html"):
+				h["lang"] = header["Content-Language"]
+
+		# offline markers
 		offline = []
 		lists = {
 			"offline": offline,

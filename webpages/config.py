@@ -10,6 +10,7 @@ class SiteConfig(object):
         "domain": "localhost",
         "section-content-class": "section-content",
         "exclude": [],
+        "appcache": True,
     }
     
     def __init__(self,options):
@@ -23,6 +24,7 @@ class SiteConfig(object):
                 self.config = yaml.load(raw.decode("utf-8"))
 
         self.config["debug"] = options.debug
+        self.config["appcache"] = options.appcache
         if hasattr(options,"pygments"):
             self.config["pygments"] = options.pygments
         self._seedTime()

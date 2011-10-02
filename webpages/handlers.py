@@ -1,6 +1,6 @@
 import json, logging
 
-from base import get_browser_type
+from base import get_browser_type, ObjectLike
 from cached import *
 
 import tornado.web
@@ -34,8 +34,10 @@ class CachedHandler(tornado.web.RequestHandler):
 
             content = REDIS[contentkey]
             lists = build_sitelists(domain)
-            t = tornado.template.Template(content)                
-            self.write(t.generate(list=lists))
+            site_info = { "posts":[] } #TODO mix in SiteConfig and additional info
+            t = tornado.template.Template(content)   
+            self.set_header("Cache control","public") # https caching for FireFox             
+            self.write(t.generate(list=lists,site=ObjectLike(site_info)))
             self.flush()
         else:
             logging.debug("404: %s" % path)
