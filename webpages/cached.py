@@ -80,7 +80,11 @@ class FileExpander(object):
 		}
 		self.header,self.content = self._get_header_and_content(relpath,header)
 		   
-		if "url" in self.header:
+		if "permalink" in self.header:
+			#TODO if it doesn't start with / look up special meaning keyword
+			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
+			self.urlpath = self.header["permalink"]
+		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 		else:
 			self.urlpath = "/%s.css" % splitext(self.path)[0]
@@ -102,7 +106,11 @@ class FileExpander(object):
 		self.header,self.content = self._get_header_and_content(relpath,header)
 		self.content = self.content.lstrip()
 		   
-		if "url" in self.header:
+		if "permalink" in self.header:
+			#TODO if it doesn't start with / look up special meaning keyword
+			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
+			self.urlpath = self.header["permalink"]
+		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 
 		if self.prefix:
@@ -123,7 +131,11 @@ class FileExpander(object):
 
 		self.header,self.content = self._get_header_and_content(relpath,header)
 		   
-		if "url" in self.header:
+		if "permalink" in self.header:
+			#TODO if it doesn't start with / look up special meaning keyword
+			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
+			self.urlpath = self.header["permalink"]
+		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 
 		if self.prefix:
@@ -144,7 +156,11 @@ class FileExpander(object):
 
 		self.header,self.content = self._get_header_and_content(relpath,header)
 		   
-		if "url" in self.header:
+		if "permalink" in self.header:
+			#TODO if it doesn't start with / look up special meaning keyword
+			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
+			self.urlpath = self.header["permalink"]
+		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 			
 		if self.prefix:
@@ -165,7 +181,11 @@ class FileExpander(object):
 
 		self.header,rest = self._get_header_and_content(relpath,header)
 
-		if "url" in self.header:
+		if "permalink" in self.header:
+			#TODO if it doesn't start with / look up special meaning keyword
+			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
+			self.urlpath = self.header["permalink"]
+		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 			
 		if self.prefix:
@@ -206,7 +226,11 @@ class FileExpander(object):
 		self.content = rest.lstrip()
 
 		self.urlpath = "/" + self.path
-		if "url" in self.header:
+		if "permalink" in self.header:
+			#TODO if it doesn't start with / look up special meaning keyword
+			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
+			self.urlpath = self.header["permalink"]
+		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
 			
 		if self.prefix:
@@ -231,9 +255,12 @@ class FileExpander(object):
 			for name in appcache:
 				listname = "%s_appcache" % name
 				REDIS.sadd(SITELISTS % self.domain,listname)
-				cachelistkey = SITELIST % (self.domain,listname)
-				if "offline" in lists:
-						REDIS.sadd(cachelistkey,path)
+				if self.config["appcache"]:
+					cachelistkey = SITELIST % (self.domain,listname)
+					if "offline" in lists:
+						offline = lists["offline"]
+						for path in offline:
+							REDIS.sadd(cachelistkey,path)
 
 
 	def cache(self,browser):
