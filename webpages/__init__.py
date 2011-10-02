@@ -21,9 +21,16 @@ def start_server(script_path,script_name,options):
         # login_url="/auth/login",
 	)
 	application = tornado.web.Application(urls,settings)
+	server_opts = {}
 	if settings["debug"]:
 		setattr(application,"ioloop",ioloop) # for the stop-server button
-	http_server = tornado.httpserver.HTTPServer(application)
+		server_opts["ssl_options"]	= {
+			"certfile": os.path.join(site.PROJECT_DIR,"devcertificate.crt"),
+			"keyfile": os.path.join(site.PROJECT_DIR,"devcertificate.key"),
+		}
+		del server_opts["ssl_options"]
+
+	http_server = tornado.httpserver.HTTPServer(application,**server_opts)
 
 	http_server.listen(options.port)
 	
@@ -58,6 +65,7 @@ def runserver():
 	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
 	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
 	parser.add_option("--nofork", dest="fork", default=True, action="store_false")
+	parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
 	parser.add_option("--port", dest="port", default=4444)
 	options, remainder = parser.parse_args()
 
@@ -85,6 +93,7 @@ def populatecache():
 	parser = optparse.OptionParser()
 	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
 	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
+	parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
 	options, remainder = parser.parse_args()
 
 	apply_site_dirs()
