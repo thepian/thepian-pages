@@ -1,8 +1,8 @@
 from __future__ import with_statement
 
-import yaml, re
+import yaml, re, os
 
-from os.path import exists,join
+from os.path import exists,join,splitext,split
 
 class SiteConfig(object):
 
@@ -41,7 +41,7 @@ class SiteConfig(object):
 
     def get_active_domain(self):
         if self.config["debug"]:
-            return "localhost"
+            return self.config["domain"] + ".local"
         else:
             return self.config["domain"]
 
@@ -97,4 +97,39 @@ class SiteConfig(object):
                 matter = yaml.load(f.read())
 
         return matter
+
+    exclude_extensions = set([
+        "py","pyc","pyo",
+        "rb",
+        "sh","exe",
+        "",
+    ])
+
+    def exclude_filter(self):
+        exclude_list = set(self.config["exclude"]) #TODO convert to path list and pass to listdir
+        exclude_extensions = self.exclude_extensions
+
+        def filter(base_path,rel_path,file_name,lstat_info):
+            #TODO (base_path,rel_path,file_name,lstat_info)
+            ext = splitext(file_name)[1]
+
+            if ext[1:] in exclude_extensions:
+                return False
+
+            if file_name[0] == "_":
+                return False
+
+            dirs = rel_path.split(os.sep)
+            for d in dirs:
+                if len(d) and d[0] == "_":
+                    return False
+            if len(dirs)>0:
+                if dirs[0] in exclude_list:
+                    return False
+            if split(base_path)[1] in exclude_list:
+                return False
+            
+        return filter
+
+
 

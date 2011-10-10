@@ -325,27 +325,6 @@ def build_template_vars(domain):
 	return lists
 
 
-from fs import filters as fs_filters, walk
-
-def listdir(dir_path,filters=(fs_filters.no_hidden,fs_filters.no_system),full_path=False,recursed=False,followlinks=True):
-    #TODO exclude_paths_list, list of rel paths to exclude/skip
-    if recursed:
-    	prefix = len(dir_path)
-    	if dir_path[-1] != "/": 
-	    	prefix += 1
-        r = []
-        for top,dirs,nondirs in walk(dir_path,use_nlink = followlinks and 2 or 1):
-            if full_path:
-                r.extend([os.path.join(top,nd) for nd in nondirs])
-            else:
-                r.extend([os.path.join(top[prefix:],nd) for nd in nondirs])
-        return r
-    if full_path:
-        return [os.path.join(dir_path,name) 
-                for name in os.listdir(dir_path) if fs_filters.check_filters(dir_path, name, os.lstat(os.path.join(dir_path,name)), filters)]
-    return [name for name in os.listdir(dir_path) if fs_filters.check_filters(dir_path,name,os.lstat(os.path.join(dir_path,name)),filters)]
- 
-
 # populate with files that have an extension and do not start with _
 def populate_cache(options):
 	config = SiteConfig(options)
@@ -362,24 +341,22 @@ ASSETS_ROOT = os.path.join(PROJECT_ROOT, 'static/assets/')
 STATIC_URL = '/static/'
 ASSETS_URL = '/static/assets/'
 """
-	exclude = set(config["exclude"]) #TODO convert to path list and pass to listdir
 
 	wipe_sitelists(config.active_domain)
+	base_filters = [config.exclude_filter(),filters.no_directories,filters.no_hidden,filters.no_system]
 
-	for relpath in listdir(site.SCSS_DIR,filters=(filters.no_directories,filters.no_hidden,filters.no_system,filters.fnmatch("*.scss"))):
-		if not relpath[0] == "_" or relpath in exclude:
-			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
-			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+	for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
+		expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
+		#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+		for browser in browsers:
+			expander.cache(browser) 
+		logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
+
+	for relpath in listdir(site.SITE_DIR,recursed=True,filters=base_filters):
+		expander = FileExpander(site.SITE_DIR,relpath,config=config)
+		if relpath[0] != "_":
 			for browser in browsers:
 				expander.cache(browser) 
 			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
-
-	for relpath in listdir(site.SITE_DIR,recursed=True,filters=(filters.no_directories,filters.no_hidden,filters.no_system)):
-		if not relpath[0] == "_":
-			expander = FileExpander(site.SITE_DIR,relpath,config=config)
-			if expander.ext != '':
-				for browser in browsers:
-					expander.cache(browser) 
-				logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 	# TODO track deleted files removing them from cache
 
