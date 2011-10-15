@@ -50,7 +50,7 @@ class FileExpander(object):
 		self.expandScss = False
 		self.expandDocument = False
 
-		self.domain = self.config.active_domain
+		self.domain = self.config["domain"]
 
 		# Load file into *header* and *content*
 		if self.ext in self.FILE_EXTENSIONS:
@@ -347,6 +347,7 @@ ASSETS_URL = '/static/assets/'
 
 	for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
 		expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
+		#TODO ensure that _x.scss is not published
 		#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 		for browser in browsers:
 			expander.cache(browser) 
