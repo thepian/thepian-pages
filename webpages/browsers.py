@@ -1,9 +1,32 @@
 from __future__ import with_statement
-import os, stat, site
+import os, stat, site, codecs
 from os.path import join, exists, abspath, splitext, split
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString
 from soupselect import select
 from scss import Scss
+
+class PartFile(object):
+	""" Fetch Browser Specific Part
+	"""
+
+	def __init__(self,specific,name,tag):
+		bits = name.split(u"/")
+		prefix = join(site.PARTS_DIR,*bits[:-1])
+		just_name = bits[-1]
+
+		path = join(prefix, specific.browser_type, "%s.%s.markdown" % (just_name,tag))
+		if not exists(path):
+			path = join(prefix, "%s.%s.markdown" % (just_name,tag))
+			if not exists(path):
+				path = join(prefix, specific.browser_type, "%s.%s.html" % (just_name,tag))
+				if not exists(path):
+					path = join(prefix, "%s.%s.html" % (just_name,tag))
+
+		self.path = path
+
+	def read(self):
+		with open(self.path,'rb') as f:
+			return f.read()
 
 class PartDocument(object):
 
@@ -15,13 +38,10 @@ class PartDocument(object):
 		self.rest = None
 		self.parent = None
 
-		path = join(site.PARTS_DIR, "%s/%s.document.html" % (specific.browser_type,name))
-		if not exists(path):
-			path = join(site.PARTS_DIR, "%s.document.html" % name)
+		doc = PartFile(specific,name,"document")
 		
-		if exists(path):
-			with open(path,'rb') as f:
-				self.header,self.rest = config.split_header_and_utf8_content(f.read(),{})
+		if exists(doc.path):
+			self.header,self.rest = config.split_header_and_utf8_content(doc.read(),{})
 			if "document" in self.header:
 				parent_name = self.header["document"]
 				if not parent_name:
@@ -31,23 +51,62 @@ class PartDocument(object):
 				else:
 					self.parent = PartDocument(self.specific,parent_name,self.config)
 		else:
-			print "no part named", path
+			print "no part named", doc.path
 
-	def expandSoup(self,content):
+
+	def wrapDocumentSoup(self,content):
+		"""Wrap the chain of documents around content. Recursively calls itself to wrap parent chain."""
 		if not self.rest:
 			return BeautifulSoup(content)
 
 		part_content = self.rest
 		if self.parent:
-			part_content = self.parent.expandSoup(self.rest).prettify()
+			part_content = self.parent.wrapDocumentSoup(self.rest).prettify()
 
 		soup = BeautifulSoup(part_content)
 
 		# insert body / content
 		content_tag = "content-tag" in self.header and self.header["content-tag"] or "body"
 		dest = soup.findAll(content_tag)[0]
-		text = NavigableString(content)
-		dest.insert(0, text)
+
+		nested = BeautifulSoup(content)
+		for c in reversed(nested.contents):
+			dest.insert(0,c)
+
+		return soup
+
+	def expandTags(self,soup,tagName):
+		tags = soup.findAll(tagName)
+		for tag in tags:
+			part = None
+			if tag.get("inline-id"):
+				part = PartFile(self.specific,tag["inline-id"],tagName)
+				del tag["inline-id"]
+			elif tag.get("id"):
+				part = PartFile(self.specific,tag["id"],tagName)
+
+			if part and exists(part.path):
+				header,rest = self.config.split_header_and_utf8_content(part.read(),{})
+				nested = BeautifulSoup(rest)
+				for c in reversed(nested.contents):
+					tag.insert(0,c)
+				#TODO parse with soup to support breaking out header/footer ?
+				
+
+
+	def expandSoup(self,content):
+		soup = self.wrapDocumentSoup(content)
+
+		# expand the sections
+		self.expandTags(soup,"article")
+		self.expandTags(soup,"aside")
+		self.expandTags(soup,"section")
+		self.expandTags(soup,"nav")
+		self.expandTags(soup,"header")
+		self.expandTags(soup,"footer")
+
+		self.expandTags(soup,"script")
+		self.expandTags(soup,"style")
 
 		return soup
 
