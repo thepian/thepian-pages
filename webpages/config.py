@@ -81,8 +81,9 @@ class SiteConfig(object):
             encoding = 'utf-8'
             if 'encoding' in matter:
                 encoding = matter['encoding']
+            rest = u"---".join(parts[2:])
             #print "parts", parts
-            return matter, self.expand_site_variables(parts[2].decode(encoding))
+            return matter, self.expand_site_variables(rest.decode(encoding))
 
         #print "parts(1)", content
         return header, self.expand_site_variables(content)
