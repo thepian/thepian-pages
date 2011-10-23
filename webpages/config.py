@@ -71,7 +71,7 @@ class SiteConfig(object):
             content = self.configRe[k].sub(str(self.config[k]),content)
         return content
 
-    def split_header_and_utf8_content(self,content,header):
+    def split_matter_and_utf8_content(self,content,header):
 
         if content[:3] == "---":
             parts = content.split("---")

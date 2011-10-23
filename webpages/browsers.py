@@ -41,7 +41,7 @@ class PartDocument(object):
 		doc = PartFile(specific,name,"document")
 		
 		if exists(doc.path):
-			self.header,self.rest = config.split_header_and_utf8_content(doc.read(),{})
+			self.header,self.rest = config.split_matter_and_utf8_content(doc.read(),{})
 			if "document" in self.header:
 				parent_name = self.header["document"]
 				if not parent_name:
@@ -86,7 +86,7 @@ class PartDocument(object):
 				part = PartFile(self.specific,tag["id"],tagName)
 
 			if part and exists(part.path):
-				header,rest = self.config.split_header_and_utf8_content(part.read(),{})
+				header,rest = self.config.split_matter_and_utf8_content(part.read(),{})
 				nested = BeautifulSoup(rest)
 				for c in reversed(nested.contents):
 					tag.insert(0,c)

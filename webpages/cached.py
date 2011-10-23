@@ -68,17 +68,17 @@ class FileExpander(object):
 
 	published = property(_get_published)
 
-	def _get_header_and_content(self,relpath,defaultheader):
+	def _get_matter_and_content(self,relpath,defaultheader):
 		content = None
 		with open(abspath(join(self.base,relpath)), "rb") as f:
 			content = f.read()
-		return self.config.split_header_and_utf8_content(content,defaultheader)
+		return self.config.split_matter_and_utf8_content(content,defaultheader)
 
 	def _scss_file(self,relpath):
 		header = {
 			"Content-Type": "text/css",
 		}
-		self.header,self.content = self._get_header_and_content(relpath,header)
+		self.header,self.content = self._get_matter_and_content(relpath,header)
 		   
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
@@ -103,7 +103,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + self.path
 
-		self.header,self.content = self._get_header_and_content(relpath,header)
+		self.header,self.content = self._get_matter_and_content(relpath,header)
 		self.content = self.content.lstrip()
 		   
 		if "permalink" in self.header:
@@ -129,7 +129,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + self.path
 
-		self.header,self.content = self._get_header_and_content(relpath,header)
+		self.header,self.content = self._get_matter_and_content(relpath,header)
 		   
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
@@ -154,7 +154,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
 
-		self.header,self.content = self._get_header_and_content(relpath,header)
+		self.header,self.content = self._get_matter_and_content(relpath,header)
 		   
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
@@ -179,7 +179,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
 
-		self.header,rest = self._get_header_and_content(relpath,header)
+		self.header,rest = self._get_matter_and_content(relpath,header)
 
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
@@ -222,7 +222,7 @@ class FileExpander(object):
 		if mime_type:
 			header["Content-Type"] = mime_type
 
-		self.header,rest = self._get_header_and_content(relpath,header)
+		self.header,rest = self._get_matter_and_content(relpath,header)
 		self.content = rest.lstrip()
 
 		self.urlpath = "/" + self.path
@@ -277,7 +277,7 @@ class FileExpander(object):
 		if self.expandScss:
 			relpath = join(browser.browser_type,self.path)
 			if exists(join(self.base,relpath)):
-				header,content = self._get_header_and_content(relpath,self.header)
+				header,content = self._get_matter_and_content(relpath,self.header)
 			else:
 				header,content = self.header,self.content
 			header = browser.expandHeader(header,config=self.config)
