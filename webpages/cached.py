@@ -25,7 +25,7 @@ IN_A_YEAR_STAMP = time.time() + ONE_YEAR_IN_SECONDS
 
 SITELISTS = "sitelist:%s"
 SITELIST = "sitelist:%s%s"
-BROWSER_SPECIFIC_HEADER = "header:%s:%s%s"
+BROWSER_SPECIFIC_DESCR = "header:%s:%s%s"
 BROWSER_SPECIFIC_CONTENT = "content:%s:%s%s"
 
 class FileExpander(object):
@@ -265,11 +265,11 @@ class FileExpander(object):
 
 	def cache(self,browser):
 		contentkey = BROWSER_SPECIFIC_CONTENT % (browser.browser_type , self.domain, self.urlpath) 
-		headerkey = BROWSER_SPECIFIC_HEADER % (browser.browser_type , self.domain, self.urlpath) 
+		descrkey = BROWSER_SPECIFIC_DESCR % (browser.browser_type , self.domain, self.urlpath) 
 
 		if not self.published:
-			if headerkey in REDIS:
-				REDIS.delete(headerkey)
+			if descrkey in REDIS:
+				REDIS.delete(descrkey)
 			if contentkey in REDIS:
 				REDIS.delete(contentkey)
 			return
@@ -294,8 +294,8 @@ class FileExpander(object):
 
 		REDIS[contentkey] = content
 		REDIS.expire(contentkey,ONE_YEAR_IN_SECONDS)
-		REDIS[headerkey] = json.dumps(header)
-		REDIS.expire(headerkey,ONE_YEAR_IN_SECONDS)
+		REDIS[descrkey] = json.dumps(header)
+		REDIS.expire(descrkey,ONE_YEAR_IN_SECONDS)
 
 def wipe_sitelists(domain):
 	#print "wiping ",domain,REDIS.smembers(SITELISTS % domain)

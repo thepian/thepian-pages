@@ -13,10 +13,10 @@ class CachedHandler(tornado.web.RequestHandler):
 
     def get_redis_content(self,path,browser_type,domain,include_body=True):
         contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , domain, path) 
-        headerkey = BROWSER_SPECIFIC_HEADER % (browser_type , domain, path) 
+        descrkey = BROWSER_SPECIFIC_DESCR % (browser_type , domain, path) 
         #TODO etag and headers
         #TODO url type, inject state script
-        header = json.loads(REDIS[headerkey])
+        header = json.loads(REDIS[descrkey])
         for hn in self.HTTP_HEADER_NAMES:
             if hn in header:
                 self.set_header(hn,header[hn])
