@@ -47,6 +47,12 @@ class SiteConfig(object):
 
     active_domain = property(get_active_domain)
 
+    def get_site_object(self):
+        import base
+        return base.ObjectLike(self.config)
+
+    site_object = property(get_site_object)
+
 
     def _seedTime(self):
         try:

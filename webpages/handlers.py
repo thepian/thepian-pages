@@ -16,10 +16,30 @@ class CachedHandler(tornado.web.RequestHandler):
         descrkey = BROWSER_SPECIFIC_DESCR % (browser_type , domain, path) 
         #TODO etag and headers
         #TODO url type, inject state script
-        header = json.loads(REDIS[descrkey])
+        descr = json.loads(REDIS[descrkey])
         for hn in self.HTTP_HEADER_NAMES:
-            if hn in header:
-                self.set_header(hn,header[hn])
+            if hn in descr:
+                self.set_header(hn,descr[hn])
+
+        page_data = {}
+        if "page-data" in descr:
+            datakey = descr["page-data"]
+            if datakey in REDIS:
+                page_data = json.loads(REDIS[datakey])
+        if "page-content" in descr and descr["page-content"] in REDIS:
+            contentkey = descr["page-content"]
+
+        page_head = u""
+        if "page-head" in descr:
+            headkey = descr["page-head"]
+            if headkey in REDIS:
+                page_head = json.loads(REDIS[headkey])
+
+        page_tail = u"        \n\n\n           "
+        if "page-tail" in descr:
+            tailkey = descr["page-tail"]
+            if tailkey in REDIS:
+                page_tail = json.loads(REDIS[tailkey])
 
         if not include_body:
             self.flush()
@@ -27,10 +47,11 @@ class CachedHandler(tornado.web.RequestHandler):
 
         content = REDIS[contentkey]
         lists = build_sitelists(domain)
-        site_info = { "posts":[] } #TODO mix in SiteConfig and additional info
-        t = tornado.template.Template(content)   
-        self.set_header("Cache control","public") # https caching for FireFox             
-        self.write(t.generate(list=lists,site=ObjectLike(site_info)))
+        #site_info = { "posts":[] } #TODO mix in SiteConfig and additional info
+        site_object = self.application.config.site_object
+        t = tornado.template.Template(page_head + content + page_tail)   
+        self.set_header("Cache-control","public") # https caching for FireFox             
+        self.write(t.generate(page=ObjectLike(page_data), list=lists, site=site_object))
         self.flush()
 
     def get(self,path,browser_type=None,include_body=True):

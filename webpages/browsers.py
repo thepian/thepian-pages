@@ -150,8 +150,10 @@ class BrowserSpecific(object):
 			for desc in select(soup,"meta[name=author]"):
 				desc["content"] = header["author"]
 		if "title" in header:
+			#TODO site.title-template "{{ page.title }} - My App"
 			for t in select(soup,"title"):
 				t.setString(header["title"])
+		#TODO elif site.title
 
 		if config["appcache"] == False:
 			for h in select(soup,"html"):

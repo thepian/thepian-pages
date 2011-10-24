@@ -25,8 +25,13 @@ IN_A_YEAR_STAMP = time.time() + ONE_YEAR_IN_SECONDS
 
 SITELISTS = "sitelist:%s"
 SITELIST = "sitelist:%s%s"
-BROWSER_SPECIFIC_DESCR = "header:%s:%s%s"
+URLLISTS = "urllist:%s"
+URLLIST = "urllist:%s"
+
+BROWSER_SPECIFIC_DESCR = "descr:%s:%s%s"
+BROWSER_SPECIFIC_HEAD = "head:%s:%s%s"
 BROWSER_SPECIFIC_CONTENT = "content:%s:%s%s"
+BROWSER_SPECIFIC_TAIL = "tail:%s:%s%s"
 
 class FileExpander(object):
 	"""
@@ -294,6 +299,7 @@ class FileExpander(object):
 
 		REDIS[contentkey] = content
 		REDIS.expire(contentkey,ONE_YEAR_IN_SECONDS)
+		#TODO don't add descr entry if part of list
 		REDIS[descrkey] = json.dumps(header)
 		REDIS.expire(descrkey,ONE_YEAR_IN_SECONDS)
 
@@ -359,5 +365,6 @@ ASSETS_URL = '/static/assets/'
 			for browser in browsers:
 				expander.cache(browser) 
 			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
+		#TODO generate descr entries for urllists
 	# TODO track deleted files removing them from cache
 
