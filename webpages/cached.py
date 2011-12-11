@@ -1,7 +1,7 @@
 from __future__ import with_statement
 
 import os, stat, logging, site
-from os.path import join, exists, abspath, splitext, split
+from os.path import join, exists, abspath, realpath, splitext, split
 from fs import listdir, filters
 import hashlib, json, datetime, time
 import mimetypes
@@ -303,6 +303,37 @@ class FileExpander(object):
 		REDIS[descrkey] = json.dumps(header)
 		REDIS.expire(descrkey,ONE_YEAR_IN_SECONDS)
 
+	def save(self,browser,base_path):
+		file_path = join(base_path,browser.browser_type,self.path)
+
+		if not self.published:
+			os.remove(file_path)
+			return
+		if not exists(join(base_path,browser.browser_type)):
+			os.makedirs(join(base_path,browser.browser_type))
+
+		if self.expandScss:
+			relpath = join(browser.browser_type,self.path)
+			if exists(join(self.base,relpath)):
+				header,content = self._get_header_and_content(relpath,self.header)
+			else:
+				header,content = self.header,self.content
+			header = browser.expandHeader(header,config=self.config)
+			content = browser.expandScss(header,content,config=self.config)
+			self.update_lists(header,{ "offline": [self.urlpath] })
+		elif self.expandDocument:
+			header = browser.expandHeader(self.header,config=self.config)
+			content, lists = browser.expandDocument(header,self.content,config=self.config)
+			self.update_lists(header,lists)
+		else:
+			header = self.header
+			content = self.content
+			self.update_lists(header,{ "offline": [self.urlpath] })
+
+		with open(file_path,"wb") as f:
+			# print "writing", file_path
+			f.write(content)
+
 def wipe_sitelists(domain):
 	#print "wiping ",domain,REDIS.smembers(SITELISTS % domain)
 	for name in REDIS.smembers(SITELISTS % domain):
@@ -335,8 +366,9 @@ def build_template_vars(domain):
 def populate_cache(options):
 	config = SiteConfig(options)
 
-	import scss
-	setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+	if site.SCSS_DIR:
+		import scss
+		setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 	""" TODO:
 LOAD_PATHS = os.path.join(PROJECT_ROOT, 'sass/frameworks/')
 # Assets path, where new sprite files are created:
@@ -351,13 +383,14 @@ ASSETS_URL = '/static/assets/'
 	wipe_sitelists(config.active_domain)
 	base_filters = [config.exclude_filter(),filters.no_directories,filters.no_hidden,filters.no_system]
 
-	for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
-		expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
-		#TODO ensure that _x.scss is not published
-		#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
-		for browser in browsers:
-			expander.cache(browser) 
-		logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
+	if site.SCSS_DIR:
+		for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
+			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
+			#TODO ensure that _x.scss is not published
+			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+			for browser in browsers:
+				expander.cache(browser) 
+			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 
 	for relpath in listdir(site.SITE_DIR,recursed=True,filters=base_filters):
 		expander = FileExpander(site.SITE_DIR,relpath,config=config)
@@ -367,4 +400,43 @@ ASSETS_URL = '/static/assets/'
 			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 		#TODO generate descr entries for urllists
 	# TODO track deleted files removing them from cache
+
+# populate with files that have an extension and do not start with _
+def populate_dir(options,path):
+	config = SiteConfig(options)
+
+	if site.SCSS_DIR:
+		import scss
+		setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+	""" TODO:
+LOAD_PATHS = os.path.join(PROJECT_ROOT, 'sass/frameworks/')
+# Assets path, where new sprite files are created:
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
+# Assets path, where new sprite files are created:
+ASSETS_ROOT = os.path.join(PROJECT_ROOT, 'static/assets/')
+# Urls for the static and assets:
+STATIC_URL = '/static/'
+ASSETS_URL = '/static/assets/'
+"""
+
+	wipe_sitelists(config.active_domain)
+	base_filters = [config.exclude_filter(),filters.no_directories,filters.no_hidden,filters.no_system]
+
+	if site.SCSS_DIR:
+		for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
+			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
+			#TODO ensure that _x.scss is not published
+			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+			for browser in browsers:
+				expander.save(browser,abspath(path)) 
+			logging.info("Generated %s for %s as %s" % (relpath,expander.domain,repr(expander)))
+
+	for relpath in listdir(site.SITE_DIR,recursed=True,filters=base_filters):
+		expander = FileExpander(site.SITE_DIR,relpath,config=config)
+		if relpath[0] != "_":
+			for browser in browsers:
+				expander.save(browser,abspath(path)) 
+			logging.info("Generated %s for %s as %s" % (relpath,expander.domain,repr(expander)))
+	# TODO track deleted files removing them from cache
+
 

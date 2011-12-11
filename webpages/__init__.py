@@ -42,6 +42,8 @@ def apply_site_dirs():
 	from os.path import join, exists
 
 	project_path = os.getcwd()
+	if hasattr(site, "PROJECT_DIR"):
+		project_path = site.PROJECT_DIR
 	setattr(site, "PROJECT_DIR", project_path)
 	setattr(site, "SITE_DIR", project_path)
 	setattr(site, "SCSS_DIR", project_path)
@@ -100,3 +102,17 @@ def populatecache():
 	enable_logging(options)
 
 	populate_cache(options)
+
+
+def populatedir(options, path):
+	import fs, optparse
+	from os.path import join, exists
+	from base import enable_logging
+	from cached import populate_cache, populate_dir
+
+	apply_site_dirs()
+	enable_logging(options)
+
+	populate_dir(options,path)
+
+
