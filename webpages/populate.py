@@ -277,8 +277,11 @@ def save_expander(expander,browser,config):
 def populate(expander_writer,config):
 
 	if site.SCSS_DIR:
-		import scss
-		setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+		try:
+			import scss
+			setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
+		except ImportError:
+			pass
 	""" TODO:
 LOAD_PATHS = os.path.join(PROJECT_ROOT, 'sass/frameworks/')
 # Assets path, where new sprite files are created:

@@ -2,7 +2,7 @@ from __future__ import with_statement
 
 import yaml, re, os
 
-from os.path import exists,join,splitext,split
+from os.path import exists,join,splitext,split,abspath
 
 class SiteConfig(object):
 
@@ -25,12 +25,21 @@ class SiteConfig(object):
             if raw:
                 self.config = yaml.load(raw.decode("utf-8"))
 
+        if hasattr(options,"source") and options.source:
+            self.config["source"] = options.source
+            if options.source[0] != "/":
+                self.config["source"] = abspath(join(site.PROJECT_DIR,options.source))
+        else:
+            self.config["source"] = site.PROJECT_DIR
+
         if options.dest:
             self.config["output"] = options.dest
+            if options.dest[0] != "/":
+                self.config["output"] = abspath(join(site.PROJECT_DIR,options.dest))
         elif "output" in self.config:
             o = self.config["output"]
             if o[0] != "/":
-                self.config["output"] = join(site.PROJECT_DIR,o)
+                self.config["output"] = abspath(join(site.PROJECT_DIR,o))
                 
         self.config["debug"] = options.debug
         self.config["appcache"] = options.appcache

@@ -73,6 +73,7 @@ def runserver():
 	parser.add_option("--nofork", dest="fork", default=True, action="store_false")
 	parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
 	parser.add_option("--port", dest="port", default=4444)
+	parser.add_option("--source",dest="source",default=None,action="store")
 	options, remainder = parser.parse_args()
 
 	apply_site_dirs(remainder)
