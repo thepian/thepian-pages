@@ -37,14 +37,16 @@ def start_server(script_path,script_name,options):
 	tornado.autoreload.start(io_loop=ioloop)
 	ioloop.start()
 
-def apply_site_dirs():
+def apply_site_dirs(rem,project_path=None):
 	import fs
 	from os.path import join, exists
 
-	project_path = os.getcwd()
+	if not project_path:
+		project_path = os.getcwd()
 	if hasattr(site, "PROJECT_DIR"):
 		project_path = site.PROJECT_DIR
-	setattr(site, "PROJECT_DIR", project_path)
+	else:
+		setattr(site, "PROJECT_DIR", project_path)
 	setattr(site, "SITE_DIR", project_path)
 	setattr(site, "SCSS_DIR", project_path)
 	setattr(site, "PARTS_DIR", project_path)
@@ -61,7 +63,9 @@ def runserver():
 	import fs, optparse, daemon
 	from os.path import join, exists
 	from base import enable_logging
-	from cached import populate_cache
+	from config import SiteConfig
+	from populate import populate
+	from cached import cache_expander, wipe_sitelists
 
 	parser = optparse.OptionParser()
 	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
@@ -71,10 +75,12 @@ def runserver():
 	parser.add_option("--port", dest="port", default=4444)
 	options, remainder = parser.parse_args()
 
-	apply_site_dirs()
+	apply_site_dirs(remainder)
 	enable_logging(options)
+	config = SiteConfig(options)
 
-	populate_cache(options)
+	wipe_sitelists(config.active_domain)
+	populate(cache_expander,config)
 	if options.fork:
 		pid = os.fork()
 		if pid == 0: 
@@ -86,33 +92,30 @@ def runserver():
 	else:
 		start_server(site.PROJECT_DIR,"runserver",options)
 
-def populatecache():
+def populateserver():
 	import fs, optparse
 	from os.path import join, exists
 	from base import enable_logging
-	from cached import populate_cache
+	from config import SiteConfig
+	from populate import populate, save_expander
+	from cached import cache_expander, wipe_sitelists
 
 	parser = optparse.OptionParser()
 	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
 	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
 	parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
+	parser.add_option("--source",dest="source",default=None,action="store")
+	parser.add_option("--dest",dest="dest",default=None,action="store")
 	options, remainder = parser.parse_args()
 
-	apply_site_dirs()
+	apply_site_dirs(remainder)
 	enable_logging(options)
+	config = SiteConfig(options)
 
-	populate_cache(options)
-
-
-def populatedir(options, path):
-	import fs, optparse
-	from os.path import join, exists
-	from base import enable_logging
-	from cached import populate_cache, populate_dir
-
-	apply_site_dirs()
-	enable_logging(options)
-
-	populate_dir(options,path)
+	if config["output"]:
+		populate(save_expander,config)
+	else:
+		wipe_sitelists(config.active_domain)
+		populate(cache_expander,config)
 
 

@@ -3,7 +3,6 @@ import os, stat, site, codecs
 from os.path import join, exists, abspath, splitext, split
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString
 from soupselect import select
-from scss import Scss
 
 class PartFile(object):
 	""" Fetch Browser Specific Part
@@ -191,6 +190,7 @@ class BrowserSpecific(object):
 		return soup.prettify(), lists
 
 	def expandScss(self,header,content,config=None):
+		from scss import Scss
 		#TODO offline images
 		css = Scss()
 		return css.compile(content)

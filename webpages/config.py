@@ -11,6 +11,8 @@ class SiteConfig(object):
         "section-content-class": "section-content",
         "exclude": [],
         "appcache": True,
+        "source": None,
+        "output": None,
     }
     
     def __init__(self,options):
@@ -23,6 +25,13 @@ class SiteConfig(object):
             if raw:
                 self.config = yaml.load(raw.decode("utf-8"))
 
+        if options.dest:
+            self.config["output"] = options.dest
+        elif "output" in self.config:
+            o = self.config["output"]
+            if o[0] != "/":
+                self.config["output"] = join(site.PROJECT_DIR,o)
+                
         self.config["debug"] = options.debug
         self.config["appcache"] = options.appcache
         if hasattr(options,"pygments"):
@@ -74,7 +83,8 @@ class SiteConfig(object):
     def expand_site_variables(self,content):
         for k in self.config.iterkeys():
             #print self.configRe[k].findall(content)
-            content = self.configRe[k].sub(str(self.config[k]),content)
+            if k in self.configRe:
+                content = self.configRe[k].sub(str(self.config[k]),content)
         return content
 
     def split_matter_and_utf8_content(self,content,header):
@@ -113,7 +123,7 @@ class SiteConfig(object):
     ])
 
     def exclude_filter(self):
-        exclude_list = set(self.config["exclude"]) #TODO convert to path list and pass to listdir
+        exclude_list = set(self["exclude"]) #TODO convert to path list and pass to listdir
         exclude_extensions = self.exclude_extensions
 
         def filter(base_path,rel_path,file_name,lstat_info):
