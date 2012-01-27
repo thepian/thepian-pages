@@ -1,3 +1,4 @@
 ---
+document: common
 ---
 index
