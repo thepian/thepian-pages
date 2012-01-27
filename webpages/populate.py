@@ -1,7 +1,7 @@
 from __future__ import with_statement
 
 import os, stat, logging, site
-from os.path import join, exists, abspath, realpath, splitext, split
+from os.path import join, exists, abspath, realpath, splitext, split, dirname
 from fs import listdir, filters
 import hashlib, json, datetime, time
 import mimetypes
@@ -243,12 +243,13 @@ class FileExpander(object):
 def save_expander(expander,browser,config):
 	base_path = config["output"]
 	file_path = join(base_path,browser.browser_type,expander.outpath[1:])
+	dir_path = dirname(file_path)
 
 	if not expander.published and exists(file_path):
 		os.remove(file_path)
 		return
-	if not exists(join(base_path,browser.browser_type)):
-		os.makedirs(join(base_path,browser.browser_type))
+	if not exists(dir_path):
+		os.makedirs(dir_path)
 
 	if expander.expandScss:
 		relpath = join(browser.browser_type,expander.path)
