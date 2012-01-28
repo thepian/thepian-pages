@@ -3,7 +3,6 @@ from __future__ import with_statement
 import os, stat, logging, site
 from os.path import join, exists, abspath, realpath, splitext, split, dirname
 from fs import listdir, filters
-import hashlib, json, datetime, time
 import mimetypes
 
 from browsers import *
@@ -13,6 +12,8 @@ class FileExpander(object):
 	Used to expand files in the site into the Redis cache.
 	"""
 	def __init__(self,base,relpath,prefix=None,config=None):
+		import datetime
+		
 		self.config = config
 		self.prefix = prefix
 		self.base = base

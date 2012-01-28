@@ -1,6 +1,6 @@
 from __future__ import with_statement
 
-import time
+import hashlib, json, datetime, time
 import redis
 
 from base import ObjectLike
