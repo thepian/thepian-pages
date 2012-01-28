@@ -100,7 +100,7 @@ class SiteConfig(object):
     def split_matter_and_utf8_content(self,content,header):
 
         if content[:3] == "---":
-            parts = content.split("---")
+            parts = content.split(u"---")
             matter = yaml.load(parts[1]) or {}
             for key in header.keys():
                 matter[key] = header[key]

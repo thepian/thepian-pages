@@ -13,7 +13,7 @@ class FileExpander(object):
 	"""
 	def __init__(self,base,relpath,prefix=None,config=None):
 		import datetime
-		
+
 		self.config = config
 		self.prefix = prefix
 		self.base = base
