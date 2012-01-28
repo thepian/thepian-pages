@@ -85,3 +85,23 @@ def test_output():
 	})
 	config = SiteConfig(options)
 	assert config["output"] == join(pages_test_root,"output")
+
+def test_exclude():
+
+	apply_site_dirs("")
+	options = ObjectLike({
+		"source": None,
+		"dest": "_site",
+		"fork": True,
+		"appcache": False,
+		"debug": False,
+		"pygments": False
+	})
+	config = SiteConfig(options)
+	from fs import filters, listdir
+	base_filters = [
+		config.exclude_filter(),
+		filters.no_hidden,filters.no_system]
+
+	r = listdir(site.SITE_DIR,recursed=True,filters=base_filters)
+	assert r == ["index.md","js/init.js"]

@@ -294,7 +294,7 @@ STATIC_URL = '/static/'
 ASSETS_URL = '/static/assets/'
 """
 
-	base_filters = [config.exclude_filter(),filters.no_directories,filters.no_hidden,filters.no_system]
+	base_filters = [config.exclude_filter(),filters.no_hidden,filters.no_system]
 
 	if site.SCSS_DIR:
 		for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):

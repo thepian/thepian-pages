@@ -1,8 +1,9 @@
 from __future__ import with_statement
 
-import yaml, re, os
+import yaml, re, os, sys
 
 from os.path import exists,join,splitext,split,abspath
+from stat import *
 
 class SiteConfig(object):
 
@@ -139,9 +140,10 @@ class SiteConfig(object):
             #TODO (base_path,rel_path,file_name,lstat_info)
             ext = splitext(file_name)[1]
 
-            if ext[1:] in exclude_extensions:
+            if ext[1:] in exclude_extensions and not S_ISDIR(lstat_info[ST_MODE]):
                 return False
 
+            #print >>sys.stderr, base_path,rel_path,file_name
             if file_name[0] == "_":
                 return False
 
