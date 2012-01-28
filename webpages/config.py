@@ -33,7 +33,7 @@ class SiteConfig(object):
         else:
             self.config["source"] = site.PROJECT_DIR
 
-        if options.dest:
+        if hasattr(options,"dest") and options.dest:
             self.config["output"] = options.dest
             if options.dest[0] != "/":
                 self.config["output"] = abspath(join(site.PROJECT_DIR,options.dest))

@@ -1,4 +1,20 @@
-import sys, os, site, logging
+import sys, os, site, logging, optparse
+
+server_options_parser = optparse.OptionParser()
+server_options_parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
+server_options_parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
+server_options_parser.add_option("--nofork", dest="fork", default=True, action="store_false")
+server_options_parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
+server_options_parser.add_option("--port", dest="port", default=4444)
+server_options_parser.add_option("--source",dest="source",default=None,action="store")
+
+populate_options_parser = optparse.OptionParser()
+populate_options_parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
+populate_options_parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
+populate_options_parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
+populate_options_parser.add_option("--source",dest="source",default=None,action="store")
+populate_options_parser.add_option("--dest",dest="dest",default=None,action="store")
+
 
 def start_server(script_path,script_name,options):
 	import tornado.httpserver
@@ -59,6 +75,7 @@ def apply_site_dirs(rem,project_path=None):
 	elif exists(join(project_path,"parts")):
 		setattr(site, "PARTS_DIR", join(project_path,"parts"))
 
+
 def runserver():
 	import fs, optparse, daemon
 	from os.path import join, exists
@@ -67,14 +84,7 @@ def runserver():
 	from populate import populate
 	from cached import cache_expander, wipe_sitelists
 
-	parser = optparse.OptionParser()
-	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
-	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
-	parser.add_option("--nofork", dest="fork", default=True, action="store_false")
-	parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
-	parser.add_option("--port", dest="port", default=4444)
-	parser.add_option("--source",dest="source",default=None,action="store")
-	options, remainder = parser.parse_args()
+	options, remainder = server_options_parser.parse_args()
 
 	apply_site_dirs(remainder)
 	enable_logging(options)
@@ -101,13 +111,7 @@ def populateserver():
 	from populate import populate, save_expander
 	from cached import cache_expander, wipe_sitelists
 
-	parser = optparse.OptionParser()
-	parser.add_option("-d", "--debug", dest="debug", default=False, action="store_true")
-	parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
-	parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
-	parser.add_option("--source",dest="source",default=None,action="store")
-	parser.add_option("--dest",dest="dest",default=None,action="store")
-	options, remainder = parser.parse_args()
+	options, remainder = populate_options_parser.parse_args()
 
 	apply_site_dirs(remainder)
 	enable_logging(options)
