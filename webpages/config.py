@@ -100,16 +100,23 @@ class SiteConfig(object):
     def split_matter_and_utf8_content(self,content,header):
 
         if content[:3] == "---":
-            parts = content.split(u"---")
-            matter = yaml.load(parts[1]) or {}
+            parts = content.split("---")
+            matter = yaml.load(unicode(parts[1],"utf-8")) or {}
+            if type(matter) == unicode:
+                matter = { "parse-error": "Front matter not proper YAML dictionary"}
+                import logging
+                logging.info("Front matter not proper YAML dictionary: %s" % matter)
+            
             for key in header.keys():
                 matter[key] = header[key]
             encoding = 'utf-8'
             if 'encoding' in matter:
                 encoding = matter['encoding']
-            rest = u"---".join(parts[2:])
+            else:
+                matter['encoding'] = encoding
+            rest = "---".join(parts[2:])
             #print "parts", parts
-            return matter, self.expand_site_variables(rest.decode(encoding))
+            return matter, self.expand_site_variables(unicode(rest,encoding))
 
         #print "parts(1)", content
         return header, self.expand_site_variables(content)

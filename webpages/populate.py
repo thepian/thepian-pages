@@ -3,7 +3,7 @@ from __future__ import with_statement
 import os, stat, logging, site
 from os.path import join, exists, abspath, realpath, splitext, split, dirname
 from fs import listdir, filters
-import mimetypes
+import mimetypes, codecs
 
 from browsers import *
 
@@ -139,6 +139,7 @@ class FileExpander(object):
 			outpath = self.urlpath + "index.html"
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
+			outpath = self.urlpath + "index.html"
 
 		self.header,self.content = self._get_matter_and_content(relpath,header)
 		   
@@ -167,6 +168,7 @@ class FileExpander(object):
 			outpath = self.urlpath + "index.html"
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
+			outpath = self.urlpath + "index.html"
 
 		self.header,rest = self._get_matter_and_content(relpath,header)
 
@@ -267,10 +269,12 @@ def save_expander(expander,browser,config):
 		#expander.update_lists(header,lists)
 	else:
 		header = expander.header
+		if "encoding" not in header:
+			header["encoding"] = "utf-8"
 		content = expander.content
 		#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
-	with open(file_path,"wb") as f:
+	with codecs.open(file_path,mode="w",encoding=header["encoding"] or "utf-8") as f:
 		# print "writing", file_path
 		f.write(content)
 

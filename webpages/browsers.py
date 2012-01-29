@@ -130,6 +130,8 @@ class BrowserSpecific(object):
 		self.browser_type = browser_type
 
 	def expandHeader(self,header,config=None):
+		if "encoding" not in header:
+			header["encoding"] = "utf-8"
 		if "document" in header:
 			part = self.partDocument(header["document"],config)
 			return part.get_collapsed_header(header=header)
