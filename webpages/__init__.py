@@ -5,7 +5,7 @@ server_options_parser.add_option("-d", "--debug", dest="debug", default=False, a
 server_options_parser.add_option("--pygments", dest="pygments", default=False, action="store_true")
 server_options_parser.add_option("--nofork", dest="fork", default=True, action="store_false")
 server_options_parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
-server_options_parser.add_option("--port", dest="port", default=4444)
+server_options_parser.add_option("--port", dest="port", type="int")
 server_options_parser.add_option("--source",dest="source",default=None,action="store")
 
 populate_options_parser = optparse.OptionParser()
@@ -15,8 +15,7 @@ populate_options_parser.add_option("--noappcache", dest="appcache", default=True
 populate_options_parser.add_option("--source",dest="source",default=None,action="store")
 populate_options_parser.add_option("--dest",dest="dest",default=None,action="store")
 
-
-def start_server(script_path,script_name,options):
+def start_server(script_path,script_name,config):
 	import tornado.httpserver
 	import tornado.web
 	import tornado.ioloop
@@ -24,12 +23,12 @@ def start_server(script_path,script_name,options):
 
 	from handlers import urls
 	
-	logging.info('Running Server on port %s' % options.port) 
+	logging.info('Running Server on port %s' % config["port"]) 
 
 	ioloop = tornado.ioloop.IOLoop.instance()
 
 	settings = dict(
-		debug=options.debug,
+		debug=config["debug"],
 		template_path=site.TEMPLATES_DIR,
 		static_path=site.SITE_DIR,
         xsrf_cookies=True,
@@ -37,6 +36,7 @@ def start_server(script_path,script_name,options):
         # login_url="/auth/login",
 	)
 	application = tornado.web.Application(urls,settings)
+	setattr(application,"config",config)
 	server_opts = {}
 	if settings["debug"]:
 		setattr(application,"ioloop",ioloop) # for the stop-server button
@@ -48,7 +48,7 @@ def start_server(script_path,script_name,options):
 
 	http_server = tornado.httpserver.HTTPServer(application,**server_opts)
 
-	http_server.listen(options.port)
+	http_server.listen(config["port"])
 	
 	tornado.autoreload.start(io_loop=ioloop)
 	ioloop.start()
@@ -97,11 +97,11 @@ def runserver():
 		if pid == 0: 
 			# The Child Process
 			with daemon.DaemonContext():
-				start_server(site.PROJECT_DIR,"runserver",options)
+				start_server(site.PROJECT_DIR,"runserver",config)
 		else:
 			print "Forked a Daemon as", pid
 	else:
-		start_server(site.PROJECT_DIR,"runserver",options)
+		start_server(site.PROJECT_DIR,"runserver",config)
 
 def populateserver():
 	import fs, optparse

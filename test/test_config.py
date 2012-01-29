@@ -110,6 +110,11 @@ def test_exclude():
 def test_server_options():
 	options, r = server_options_parser.parse_args(args=["--nofork"])
 	config = SiteConfig(options)
+	assert config["port"] == 4444
+
+	options, r = server_options_parser.parse_args(args=["--port=555"])
+	config = SiteConfig(options)
+	assert config["port"] == 555
 
 def test_populate_options():
 	options, r = populate_options_parser.parse_args(args=["--dest=./abc"])

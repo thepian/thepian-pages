@@ -14,6 +14,7 @@ class SiteConfig(object):
         "appcache": True,
         "source": None,
         "output": None,
+        "port": 4444,
     }
     
     def __init__(self,options):
@@ -25,6 +26,9 @@ class SiteConfig(object):
             raw = f.read()
             if raw:
                 self.config = yaml.load(raw.decode("utf-8"))
+
+        if hasattr(options,"port") and options.port:
+            self.config["port"] = options.port
 
         if hasattr(options,"source") and options.source:
             self.config["source"] = options.source
