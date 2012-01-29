@@ -30,6 +30,9 @@ def test_split_matter_content():
 	#self.header,self.content = self._get_matter_and_content(relpath,header)
 	config.split_matter_and_utf8_content(content,header)	
 
+def test_handler_content():
+	pass
+
 def test_double_dashes():
 	apply_site_dirs("")
 	options, r = server_options_parser.parse_args(args=["--nofork"])

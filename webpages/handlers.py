@@ -16,7 +16,7 @@ class CachedHandler(tornado.web.RequestHandler):
         descrkey = BROWSER_SPECIFIC_DESCR % (browser_type , domain, path) 
         #TODO etag and headers
         #TODO url type, inject state script
-        descr = json.loads(REDIS[descrkey])
+        descr = json.loads(unicode(REDIS[descrkey],"utf-8"))
         for hn in self.HTTP_HEADER_NAMES:
             if hn in descr:
                 self.set_header(hn,descr[hn])
@@ -45,7 +45,7 @@ class CachedHandler(tornado.web.RequestHandler):
             self.flush()
             return
 
-        content = REDIS[contentkey]
+        content = unicode(REDIS[contentkey],"utf-8")
         lists = build_sitelists(domain)
         #site_info = { "posts":[] } #TODO mix in SiteConfig and additional info
         site_object = self.application.config.site_object
