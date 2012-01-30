@@ -1,6 +1,6 @@
 from __future__ import with_statement
 
-import os, stat, logging, site
+import sys, os, stat, logging, site, re
 from os.path import join, exists, abspath, realpath, splitext, split, dirname
 from fs import listdir, filters
 import mimetypes, codecs
@@ -41,6 +41,23 @@ class FileExpander(object):
 
 	def __repr__(self):
 		return "%s %s %s %s" % (self.urlpath,self.name,self.ext,self.header)
+
+	def get_name_parts(self):
+		lib_ver = self.name.split("-")
+		name = self.name
+		version = None
+
+		if re.match(r'(\d+\.?)+$',lib_ver[-1]):
+			name = "-".join(lib_ver[:-1])
+			version = lib_ver[-1]
+
+		return [
+			name,
+			version,
+			self.ext
+		]
+
+	name_parts = property(get_name_parts)
 
 	def _get_published(self):
 		if "published" in self.header:
@@ -191,8 +208,25 @@ class FileExpander(object):
 		extras = ["code-friendly","wiki-tables","cuddled-lists"]
 		if "markdown-extras" in self.header:
 			extras = self.header["markdown-extras"]
-		self.content = markdown2.markdown(rest,extras)
+		self.content = markdown2.markdown(rest,extras).encode("utf-8")
 		   
+	def _js_file(self,relpath):
+		header = {
+			"Content-Type": "application/javascript",
+		}
+		mime_type,encoding = mimetypes.guess_type(self.path)
+		if mime_type:
+			header["Content-Type"] = mime_type
+		content = None
+		with open(abspath(join(self.base,relpath)), "rb") as f:
+			content = f.read()
+		self.urlpath = "/" + self.path
+		if self.prefix:
+			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+		self.outpath = self.urlpath
+		self.header = header
+		self.content = content
+
 	def _default_file(self,relpath):
 		header = {
 			"Content-Type": "text/plain",
@@ -232,6 +266,7 @@ class FileExpander(object):
 
 
 	FILE_EXTENSIONS = {
+		".js" : _js_file,
 		".scss" : _scss_file,
 		".txt" : _text_file,
 		".text" : _text_file,
@@ -242,6 +277,28 @@ class FileExpander(object):
 		".markdown" : _markdown_file,
 		".appcache" : _appcache_file,
 	}
+
+class LibBuilder(object):
+
+	def __init__(self,base,prefix=None,subdir=None,config=None):
+		self.base = base
+		self.subdir = subdir
+		self.prefix = prefix
+		self.config = config
+
+		self.versions = {}
+
+	def addVersion(self,expander):
+		version = expander.name_parts[1]
+		self.versions[version] = expander
+
+	def get_versions(self):
+		#TODO minified versions & most recent version
+		for name in self.versions.iterkeys():
+			yield self.versions[name]
+
+	deployed_expanders = property(get_versions)
+
 
 def save_expander(expander,browser,config):
 	base_path = config["output"]
@@ -274,10 +331,12 @@ def save_expander(expander,browser,config):
 		content = expander.content
 		#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
-	with codecs.open(file_path,mode="w",encoding=header["encoding"] or "utf-8") as f:
+	# print >>sys.stderr, header["encoding"], type(content)
+	# with codecs.open(file_path,mode="wb",encoding=header["encoding"] or "utf-8") as f:
+	with open(file_path,"w") as f:
 		# print "writing", file_path
+		# ucontent = unicode(content,"utf-8")
 		f.write(content)
-
 
 # populate with files that have an extension and do not start with _
 def populate(expander_writer,config):
@@ -309,6 +368,30 @@ ASSETS_URL = '/static/assets/'
 			for browser in browsers:
 				expander_writer(expander,browser,config) 
 			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
+
+	if site.LIBS_DIR:
+		builders = {}
+		for relpath in listdir(site.LIBS_DIR, filters=[filters.only_directories]):
+			builder = LibBuilder(site.LIBS_DIR,subdir=relpath,config=config)
+			builders[relpath] = builder
+
+		for relpath in listdir(site.LIBS_DIR, filters=[filters.no_directories,filters.fnmatch("*.js")]):
+			expander = FileExpander(site.LIBS_DIR,relpath,config=config,prefix="js")
+			prefix = expander.name_parts[0]
+			if prefix in builders:
+				builder = builders[prefix]
+			else:
+				builder = LibBuilder(site.LIBS_DIR,prefix=prefix,config=config)
+				builders[prefix] = builder
+			builder.addVersion(expander)
+
+		for name in builders.iterkeys():
+			builder = builders[name]
+			for expander in builder.deployed_expanders:
+				for browser in browsers:
+					#print >>sys.stderr, repr(expander)
+					expander_writer(expander,browser,config)
+		
 
 	for relpath in listdir(site.SITE_DIR,recursed=True,filters=base_filters):
 		expander = FileExpander(site.SITE_DIR,relpath,config=config)

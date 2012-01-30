@@ -66,6 +66,7 @@ def apply_site_dirs(rem,project_path=None):
 	setattr(site, "SITE_DIR", project_path)
 	setattr(site, "SCSS_DIR", project_path)
 	setattr(site, "PARTS_DIR", project_path)
+	setattr(site, "LIBS_DIR", None)
 	setattr(site, "TEMPLATES_DIR", project_path)
 
 	if exists(join(project_path,"_scss")):
@@ -74,6 +75,8 @@ def apply_site_dirs(rem,project_path=None):
 		setattr(site, "PARTS_DIR", join(project_path,"_parts"))
 	elif exists(join(project_path,"parts")):
 		setattr(site, "PARTS_DIR", join(project_path,"parts"))
+	if exists(join(project_path,"_libs")):
+		setattr(site, "LIBS_DIR", join(project_path,"_libs"))
 
 
 def runserver():
