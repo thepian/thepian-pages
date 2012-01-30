@@ -7,6 +7,43 @@ import mimetypes, codecs
 
 from browsers import *
 
+class UnversionedExpander(object):
+
+	def __init__(self,original):
+		self.original = original
+
+		self.config = original.config
+		self.prefix = original.prefix
+		self.base = original.base
+		self.path = original.path
+		self.name = original.name
+		self.ext = original.ext
+
+		self.modified = original.modified
+		self.domain = original.domain
+
+		self.header = original.header
+		self.content = original.content
+
+		version = original.name_parts[1]
+		self.urlpath = original.urlpath.replace("-%s" % version,"")
+		self.outpath = original.outpath.replace("-%s" % version,"")
+
+		self.published = original.published
+		self.expandScss = original.expandScss
+		self.expandDocument = original.expandDocument
+
+		# print >>sys.stderr, self.outpath
+
+	def __repr__(self):
+		return repr(self.original)
+
+	def get_name_parts(self):
+		np = original.name_parts
+		return [np[0], None, np[2]]
+	name_parts = property(get_name_parts)
+
+
 class FileExpander(object):
 	"""
 	Used to expand files in the site into the Redis cache.
@@ -19,6 +56,9 @@ class FileExpander(object):
 		self.base = base
 		self.path = relpath
 		self.name, self.ext = splitext(split(relpath)[1])
+		if self.name[-4:] == ".min":
+			self.name = self.name[:-4]
+			self.ext = ".min%s" % self.ext
 
 		path = abspath(join(base,relpath))
 		stat_result = os.stat(path)
@@ -58,6 +98,9 @@ class FileExpander(object):
 		]
 
 	name_parts = property(get_name_parts)
+
+	def unversioned_copy(self):
+		return UnversionedExpander(self)
 
 	def _get_published(self):
 		if "published" in self.header:
@@ -266,6 +309,7 @@ class FileExpander(object):
 
 
 	FILE_EXTENSIONS = {
+		".min.js": _js_file,
 		".js" : _js_file,
 		".scss" : _scss_file,
 		".txt" : _text_file,
@@ -278,6 +322,12 @@ class FileExpander(object):
 		".appcache" : _appcache_file,
 	}
 
+def compare_version(a,b):
+	from pkg_resources import parse_version
+	if not a: return +1
+	if not b: return -1
+	return cmp(parse_version(a),parse_version(b))
+
 class LibBuilder(object):
 
 	def __init__(self,base,prefix=None,subdir=None,config=None):
@@ -287,15 +337,28 @@ class LibBuilder(object):
 		self.config = config
 
 		self.versions = {}
+		self.mostRecent = None
 
 	def addVersion(self,expander):
 		version = expander.name_parts[1]
 		self.versions[version] = expander
+		if not self.mostRecent:
+			self.mostRecent = expander
+		else:
+			if compare_version(self.mostRecent.name_parts[1],expander.name_parts[1]) > 0:
+				self.mostRecent = expander
 
 	def get_versions(self):
 		#TODO minified versions & most recent version
+		latest = None
 		for name in self.versions.iterkeys():
-			yield self.versions[name]
+			latest = self.versions[name]
+			yield latest
+
+		#if self.mostRecent:
+		#	print >>sys.stderr, self.mostRecent, latest.name_parts[1]
+		if self.mostRecent and (self.mostRecent != latest or latest.name_parts[1]):
+			yield self.mostRecent.unversioned_copy()
 
 	deployed_expanders = property(get_versions)
 
