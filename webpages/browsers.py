@@ -201,6 +201,12 @@ class BrowserSpecific(object):
 	def partDocument(self,name,config):
 		return PartDocument(self,name,config)
 
+	def downloadContent(header,config=None):
+		from urllib2 import urlopen
+		response = urlopen(header["download"])
+		return response.read()
+
+
 
 browsers = [
 	BrowserSpecific('pocket'),
