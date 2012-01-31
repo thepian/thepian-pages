@@ -32,7 +32,7 @@ class UnversionedExpander(object):
 		self.published = original.published
 		self.expandScss = original.expandScss
 		self.expandDocument = original.expandDocument
-		self.downloadContent = original.downloadContent
+		self.fetchContent = original.fetchContent
 
 		# print >>sys.stderr, self.outpath
 
@@ -71,7 +71,7 @@ class FileExpander(object):
 
 		self.expandScss = False
 		self.expandDocument = False
-		self.downloadContent = False
+		self.fetchContent = False
 
 		self.domain = self.config["domain"]
 
@@ -261,8 +261,8 @@ class FileExpander(object):
 		}
 
 		self.header,self.content = self._get_matter_and_content(relpath,header)
-		if "download" in self.header:
-			self.downloadContent = True
+		if "fetch" in self.header:
+			self.fetchContent = True
 		self.urlpath = "/" + self.path
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
@@ -385,9 +385,9 @@ def save_expander(expander,browser,config):
 		header = browser.expandHeader(expander.header,config=expander.config)
 		content, lists = browser.expandDocument(header,expander.content,config=expander.config)
 		#expander.update_lists(header,lists)
-	elif expander.downloadContent:
+	elif expander.fetchContent:
 		header = expander.header
-		content = browser.downloadContent(header,config=expander.config)
+		content = browser.fetchContent(header,config=expander.config,basedir=dirname(join(expander.base,expander.path)))
 	else:
 		header = expander.header
 		if "encoding" not in header:

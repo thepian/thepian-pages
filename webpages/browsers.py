@@ -1,5 +1,5 @@
 from __future__ import with_statement
-import os, stat, site, codecs
+import os, stat, site, codecs, logging
 from os.path import join, exists, abspath, splitext, split
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString
 from soupselect import select
@@ -201,10 +201,18 @@ class BrowserSpecific(object):
 	def partDocument(self,name,config):
 		return PartDocument(self,name,config)
 
-	def downloadContent(header,config=None):
-		from urllib2 import urlopen
-		response = urlopen(header["download"])
-		return response.read()
+	def fetchContent(self,header,config=None,basedir=None):
+		fetch = header["fetch"]
+		if fetch[:5] == "http:":
+			from urllib2 import urlopen
+			response = urlopen(header["fetch"])
+			return response.read()
+		else:
+			logging.info("Fetching %s from %s" % (fetch,basedir))
+			fetch_abs = abspath(join(basedir,fetch))
+			with open(fetch_abs,"rb") as f:
+				return f.read()
+
 
 
 
