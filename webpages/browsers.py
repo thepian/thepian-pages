@@ -201,17 +201,24 @@ class BrowserSpecific(object):
 	def partDocument(self,name,config):
 		return PartDocument(self,name,config)
 
-	def fetchContent(self,header,config=None,basedir=None):
-		fetch = header["fetch"]
-		if fetch[:5] == "http:":
+	def _fetch(self, ref, config=None, basedir=None):
+		if ref[:5] == "http:":
 			from urllib2 import urlopen
-			response = urlopen(header["fetch"])
+			response = urlopen(ref)
 			return response.read()
 		else:
-			logging.info("Fetching %s from %s" % (fetch,basedir))
-			fetch_abs = abspath(join(basedir,fetch))
+			logging.info("Fetching %s from %s" % (ref,basedir))
+			fetch_abs = abspath(join(basedir,ref))
 			with open(fetch_abs,"rb") as f:
 				return f.read()
+
+	def fetchContent(self,header,config=None,basedir=None):
+		#TODO joining strategies for different content, binary files - no shims
+		fetch = header["fetch"]
+		if type(fetch) == list:
+			return "".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
+		else:
+			return self._fetch(fetch,config=config,basedir=basedir)
 
 
 

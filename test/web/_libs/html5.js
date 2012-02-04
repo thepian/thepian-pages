@@ -1,3 +1,4 @@
 ---
-fetch: ../../html5-patch.js
+fetch: 
+ - ../../html5-patch.js
 ---
