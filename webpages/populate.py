@@ -342,18 +342,19 @@ class LibBuilder(object):
 	def addVersion(self,expander):
 		version = expander.name_parts[1]
 		if expander.ext == ".min.js":
-			self._add("minVersions","minMostRecent",expander,version)
+			self._add("minVersions","mostRecentMin",expander,version)
 		else:
 			self._add("versions","mostRecent",expander,version)
 
 	def _add(self,vers,mr,expander,version):
 		versions = getattr(self,vers)
 		versions[version] = expander
-		if not self.mostRecent:
+		if not getattr(self, mr):
 			setattr(self, mr, expander)
 		else:
+			print >>sys.stderr, mr, getattr(self, mr)
 			if compare_version(getattr(self, mr).name_parts[1],expander.name_parts[1]) > 0:
-				setattr(self, mostRecent, expander)
+				setattr(self, mr, expander)
 
 	def get_versions(self):
 		#TODO minified versions & most recent version
@@ -361,11 +362,16 @@ class LibBuilder(object):
 		for name in self.versions.iterkeys():
 			latest = self.versions[name]
 			yield latest
+		for name in self.minVersions.iterkeys():
+			latest = self.minVersions[name]
+			yield latest
 
 		#if self.mostRecent:
 		#	print >>sys.stderr, self.mostRecent, latest.name_parts[1]
 		if self.mostRecent and (self.mostRecent != latest or latest.name_parts[1]):
 			yield self.mostRecent.unversioned_copy()
+		if self.mostRecentMin and (self.mostRecentMin != latest or latest.name_parts[1]):
+			yield self.mostRecentMin.unversioned_copy()
 
 	deployed_expanders = property(get_versions)
 

@@ -44,3 +44,25 @@ def test_populate_desktop_browser():
 
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
 
+def test_populate_jquery():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+	
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w2"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+	})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","desktop","js","jquery-1.5.1.js"))
+	jqsize = getsize(join(pages_test_root,"w2","_libs","jquery-1.5.1.js"))
+	assert getsize(join(pages_test_root,"output","desktop","js","jquery-1.5.1.js")) == jqsize
+	assert getsize(join(pages_test_root,"output","desktop","js","jquery.js")) == jqsize
+	jqminsize = getsize(join(pages_test_root,"w2","_libs","jquery-1.5.1.min.js"))
+	assert getsize(join(pages_test_root,"output","desktop","js","jquery-1.5.1.min.js")) == jqminsize
+	assert getsize(join(pages_test_root,"output","desktop","js","jquery.min.js")) == jqminsize
+
