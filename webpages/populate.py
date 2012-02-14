@@ -336,15 +336,24 @@ class LibBuilder(object):
 
 		self.versions = {}
 		self.mostRecent = None
+		self.minVersions = {}
+		self.mostRecentMin = None
 
 	def addVersion(self,expander):
 		version = expander.name_parts[1]
-		self.versions[version] = expander
-		if not self.mostRecent:
-			self.mostRecent = expander
+		if expander.ext == ".min.js":
+			self._add("minVersions","minMostRecent",expander,version)
 		else:
-			if compare_version(self.mostRecent.name_parts[1],expander.name_parts[1]) > 0:
-				self.mostRecent = expander
+			self._add("versions","mostRecent",expander,version)
+
+	def _add(self,vers,mr,expander,version):
+		versions = getattr(self,vers)
+		versions[version] = expander
+		if not self.mostRecent:
+			setattr(self, mr, expander)
+		else:
+			if compare_version(getattr(self, mr).name_parts[1],expander.name_parts[1]) > 0:
+				setattr(self, mostRecent, expander)
 
 	def get_versions(self):
 		#TODO minified versions & most recent version
@@ -364,6 +373,8 @@ class LibBuilder(object):
 def save_expander(expander,browser,config):
 	base_path = config["output"]
 	file_path = join(base_path,browser.browser_type,expander.outpath[1:])
+	if config["browser"]:
+		file_path = join(base_path,expander.outpath[1:])
 	dir_path = dirname(file_path)
 
 	if not expander.published and exists(file_path):
@@ -430,14 +441,17 @@ ASSETS_URL = '/static/assets/'
 			#TODO ensure that _x.scss is not published
 			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 			for browser in browsers:
-				expander_writer(expander,browser,config) 
+				if not config["browser"] or config["browser"] == browser.browser_type:
+					expander_writer(expander,browser,config) 
 			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 
 	if site.LIBS_DIR:
 		builders = {}
-		for relpath in listdir(site.LIBS_DIR, filters=[filters.only_directories]):
-			builder = LibBuilder(site.LIBS_DIR,subdir=relpath,config=config)
-			builders[relpath] = builder
+		for relpath in listdir(site.LIBS_DIR, filters=[filters.only_directories,filters.fnmatch("*.js")]):
+			libname = relpath[:-3]
+			builder = LibBuilder(site.LIBS_DIR,subdir=libname,config=config)
+			builders[libname] = builder
+			#TODO figure out the relevant one
 
 		for relpath in listdir(site.LIBS_DIR, filters=[filters.no_directories,filters.fnmatch("*.js")]):
 			expander = FileExpander(site.LIBS_DIR,relpath,config=config,prefix="js")
@@ -453,15 +467,17 @@ ASSETS_URL = '/static/assets/'
 			builder = builders[name]
 			for expander in builder.deployed_expanders:
 				for browser in browsers:
-					#print >>sys.stderr, repr(expander)
-					expander_writer(expander,browser,config)
+					if not config["browser"] or config["browser"] == browser.browser_type:
+						#print >>sys.stderr, repr(expander)
+						expander_writer(expander,browser,config)
 		
 
 	for relpath in listdir(site.SITE_DIR,recursed=True,filters=base_filters):
 		expander = FileExpander(site.SITE_DIR,relpath,config=config)
 		if relpath[0] != "_":
 			for browser in browsers:
-				expander_writer(expander,browser,config) 
+				if not config["browser"] or config["browser"] == browser.browser_type:
+					expander_writer(expander,browser,config) 
 			logging.info("Cached %s for %s as %s" % (relpath,expander.domain,repr(expander)))
 		#TODO generate descr entries for urllists
 	# TODO track deleted files removing them from cache
