@@ -1,14 +1,26 @@
 import sys,site
 from os.path import dirname, join
 pages_test_root = dirname(__file__)
-setattr(site,"PROJECT_DIR",join(pages_test_root,"web"))
 
 from webpages import apply_site_dirs, server_options_parser, populate_options_parser
 from webpages.base import ObjectLike
 from webpages.config import SiteConfig
 
+def test_broken_config():
+	apply_site_dirs("",force_project_path=join(pages_test_root,"broken-config"))
+	config = SiteConfig({})
+	print >>sys.stderr, "config", config.config
+	assert "config-error" in config
+	assert config["config-error"] == "_config.yml is empty or malformed"
+
+def test_missing_config():
+	apply_site_dirs("",force_project_path=join(pages_test_root,"broken-missing"))
+	config = SiteConfig({})
+	assert "config-error" in config
+	assert config["config-error"] == "_config.yml is missing"
+
 def test_config():
-	apply_site_dirs("")
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	options = ObjectLike({
 		"source": None,
 		"dest": None,
@@ -38,7 +50,7 @@ def test_config():
 	assert config["debug"] == True
 
 def test_source():
-	apply_site_dirs("")
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	options = ObjectLike({
 		"source": "abc",
 		"dest": None,
@@ -63,7 +75,7 @@ def test_source():
 	assert config["source"] == "/"
 
 def test_output():
-	apply_site_dirs("")
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	options = ObjectLike({
 		"source": None,
 		"dest": "_site",
@@ -88,7 +100,7 @@ def test_output():
 
 def test_exclude():
 
-	apply_site_dirs("")
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	options = ObjectLike({
 		"source": None,
 		"dest": "_site",

@@ -4,6 +4,7 @@ import yaml, re, os, sys
 
 from os.path import exists,join,splitext,split,abspath
 from stat import *
+from base import ObjectLike
 
 class SiteConfig(object):
 
@@ -15,17 +16,26 @@ class SiteConfig(object):
         "source": None,
         "output": None,
         "port": 4444,
+        "browser": None,
     }
     
     def __init__(self,options):
         self.config = {}
         self.configRe = {}
 
+        if type(options) == dict:
+            options = ObjectLike(options)
+
         import site, yaml
-        with open(join(site.PROJECT_DIR,"_config.yml"),"rb") as f:
-            raw = f.read()
-            if raw:
-                self.config = yaml.load(raw.decode("utf-8"))
+        if not exists(join(site.PROJECT_DIR,"_config.yml")):
+            self.config = { "config-error":"_config.yml is missing" }
+        else:
+            with open(join(site.PROJECT_DIR,"_config.yml"),"rb") as f:
+                raw = f.read()
+                if raw:
+                    self.config = yaml.load(raw.decode("utf-8"))
+                    if type(self.config) is not dict:
+                        self.config = { "config-error":"_config.yml is empty or malformed" }
 
         if hasattr(options,"port") and options.port:
             self.config["port"] = options.port
@@ -45,6 +55,9 @@ class SiteConfig(object):
             o = self.config["output"]
             if o[0] != "/":
                 self.config["output"] = abspath(join(site.PROJECT_DIR,o))
+
+        if hasattr(options,"browser") and options.browser:
+            self.config["browser"] = options.browser
                 
         self.config["debug"] = options.debug
         self.config["appcache"] = options.appcache
@@ -52,6 +65,9 @@ class SiteConfig(object):
             self.config["pygments"] = options.pygments
         self._seedTime()
         self._updateMatching()
+
+    def __contains__(self,key):
+        return key in self.config or key in self.defaults
 
     def __getitem__(self,key):
         if key in self.config:

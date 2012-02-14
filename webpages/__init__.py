@@ -14,6 +14,7 @@ populate_options_parser.add_option("--pygments", dest="pygments", default=False,
 populate_options_parser.add_option("--noappcache", dest="appcache", default=True, action="store_false")
 populate_options_parser.add_option("--source",dest="source",default=None,action="store")
 populate_options_parser.add_option("--dest",dest="dest",default=None,action="store")
+populate_options_parser.add_option("--browser", dest="browser",default=None,action="store")
 
 def start_server(script_path,script_name,config):
 	import tornado.httpserver
@@ -53,16 +54,21 @@ def start_server(script_path,script_name,config):
 	tornado.autoreload.start(io_loop=ioloop)
 	ioloop.start()
 
-def apply_site_dirs(rem,project_path=None):
+def apply_site_dirs(rem,project_path=None,force_project_path=None):
 	import fs
 	from os.path import join, exists
 
-	if not project_path:
-		project_path = os.getcwd()
-	if hasattr(site, "PROJECT_DIR"):
-		project_path = site.PROJECT_DIR
-	else:
+	if force_project_path:
+		project_path = force_project_path
 		setattr(site, "PROJECT_DIR", project_path)
+	else:
+		if not project_path:
+			project_path = os.getcwd()
+		if hasattr(site, "PROJECT_DIR"):
+			project_path = site.PROJECT_DIR
+		else:
+			setattr(site, "PROJECT_DIR", project_path)
+
 	setattr(site, "SITE_DIR", project_path)
 	setattr(site, "SCSS_DIR", project_path)
 	setattr(site, "PARTS_DIR", project_path)

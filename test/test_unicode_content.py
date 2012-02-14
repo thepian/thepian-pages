@@ -2,7 +2,6 @@ import sys,site
 from os.path import dirname, join, abspath
 
 pages_test_root = dirname(__file__)
-setattr(site,"PROJECT_DIR",join(pages_test_root,"web"))
 
 from webpages import apply_site_dirs, server_options_parser, populate_options_parser
 from webpages.base import ObjectLike
@@ -15,7 +14,7 @@ encoding: .. specify the encoding of the content part and the destination encodi
 internally always use utf-8	
 """
 def test_split_matter_content():
-	apply_site_dirs("")
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	options, r = server_options_parser.parse_args(args=["--nofork"])
 	config = SiteConfig(options)
 
@@ -34,7 +33,7 @@ def test_handler_content():
 	pass
 
 def test_double_dashes():
-	apply_site_dirs("")
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	options, r = server_options_parser.parse_args(args=["--nofork"])
 	config = SiteConfig(options)
 
