@@ -352,7 +352,6 @@ class LibBuilder(object):
 		if not getattr(self, mr):
 			setattr(self, mr, expander)
 		else:
-			print >>sys.stderr, mr, getattr(self, mr)
 			if compare_version(getattr(self, mr).name_parts[1],expander.name_parts[1]) > 0:
 				setattr(self, mr, expander)
 
@@ -366,8 +365,6 @@ class LibBuilder(object):
 			latest = self.minVersions[name]
 			yield latest
 
-		#if self.mostRecent:
-		#	print >>sys.stderr, self.mostRecent, latest.name_parts[1]
 		if self.mostRecent and (self.mostRecent != latest or latest.name_parts[1]):
 			yield self.mostRecent.unversioned_copy()
 		if self.mostRecentMin and (self.mostRecentMin != latest or latest.name_parts[1]):
