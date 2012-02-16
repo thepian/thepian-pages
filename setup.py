@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='thepian-pages',
-      version=0.1,
+      version=0.2,
       description="The Thepian Web Pages",
       long_description="""\
 """,
