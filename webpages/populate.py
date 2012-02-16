@@ -194,8 +194,13 @@ class FileExpander(object):
 		header = {
 			"Content-Type": "text/html",
 		}
+		self.header,self.content = self._get_matter_and_content(relpath,header)
+		   
 		outpath = None
-		if self.name == "index":
+		if "extension" in self.header:
+			self.urlpath = "/" + splitext(self.path)[0] + "." + self.header["extension"]			
+			outpath = self.urlpath
+		elif self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
 			if self.urlpath[-1] != "/": self.urlpath += "/"
 			outpath = self.urlpath + "index.html"
@@ -203,8 +208,6 @@ class FileExpander(object):
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
 			outpath = self.urlpath + "index.html"
 
-		self.header,self.content = self._get_matter_and_content(relpath,header)
-		   
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
 			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
@@ -223,16 +226,19 @@ class FileExpander(object):
 		header = {
 			"Content-Type": "text/html",
 		}
+		self.header,rest = self._get_matter_and_content(relpath,header)
+
 		outpath = None
-		if self.name == "index":
+		if "extension" in self.header:
+			self.urlpath = "/" + splitext(self.path)[0] + "." + self.header["extension"]			
+			outpath = self.urlpath
+		elif self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
 			if self.urlpath[-1] != "/": self.urlpath += "/"
 			outpath = self.urlpath + "index.html"
 		else:
 			self.urlpath = "/" + splitext(self.path)[0] + "/"
 			outpath = self.urlpath + "index.html"
-
-		self.header,rest = self._get_matter_and_content(relpath,header)
 
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
