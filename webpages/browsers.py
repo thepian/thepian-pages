@@ -214,7 +214,7 @@ class BrowserSpecific(object):
 
 	def fetchContent(self,header,config=None,basedir=None):
 		#TODO joining strategies for different content, binary files - no shims
-		fetch = header["fetch"]
+		fetch = "fetch" in header and header["fetch"] or header["content"]
 		if type(fetch) == list:
 			return "".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
 		else:

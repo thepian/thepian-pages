@@ -106,11 +106,18 @@ def test_populate_http_fetch():
 	httpd_thread.start()
 
 	populate(save_expander,config)
-	assert exists(join(pages_test_root,"output","js","html5.js"))
 	h5size = getsize(join(pages_test_root,"html5-patch.js"))
 	disclsize = getsize(join(pages_test_root,"lead-disclaimer.js"))
+	fofsize = getsize(join(pages_test_root,"fourofour.html"))
 
+	assert exists(join(pages_test_root,"output","js","html5.js"))
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == h5size # disclsize
+	assert exists(join(pages_test_root,"output","html5.js"))
+	assert getsize(join(pages_test_root,"output","html5.js")) == h5size
+	assert exists(join(pages_test_root,"output","js","html5-2.js"))
+	assert getsize(join(pages_test_root,"output","js","html5-2.js")) == h5size
+	assert exists(join(pages_test_root,"output","404","index.html"))
+	assert getsize(join(pages_test_root,"output","404","index.html")) == fofsize
 
 	#httpd_thread.stop()
 

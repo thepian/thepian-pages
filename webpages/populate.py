@@ -115,13 +115,19 @@ class FileExpander(object):
 		content = None
 		with open(abspath(join(self.base,relpath)), "rb") as f:
 			content = f.read()
-		return self.config.split_matter_and_utf8_content(content,defaultheader)
+		header,content = self.config.split_matter_and_utf8_content(content,defaultheader)
+		fetchContent = False
+		if "fetch" in header:
+			fetchContent = True
+		if "content" in header:
+			fetchContent = True
+		return header,content,fetchContent
 
 	def _scss_file(self,relpath):
 		header = {
 			"Content-Type": "text/css",
 		}
-		self.header,self.content = self._get_matter_and_content(relpath,header)
+		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
@@ -147,7 +153,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + self.path
 
-		self.header,self.content = self._get_matter_and_content(relpath,header)
+		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		self.content = self.content.lstrip()
 		   
 		if "permalink" in self.header:
@@ -174,7 +180,7 @@ class FileExpander(object):
 		else:
 			self.urlpath = "/" + self.path
 
-		self.header,self.content = self._get_matter_and_content(relpath,header)
+		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
@@ -194,7 +200,7 @@ class FileExpander(object):
 		header = {
 			"Content-Type": "text/html",
 		}
-		self.header,self.content = self._get_matter_and_content(relpath,header)
+		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
 		outpath = None
 		if "extension" in self.header:
@@ -226,7 +232,8 @@ class FileExpander(object):
 		header = {
 			"Content-Type": "text/html",
 		}
-		self.header,rest = self._get_matter_and_content(relpath,header)
+		self.header,rest,self.fetchContent = self._get_matter_and_content(relpath,header)
+		#TODO content/fetch ?
 
 		outpath = None
 		if "extension" in self.header:
@@ -266,9 +273,7 @@ class FileExpander(object):
 			"Content-Type": "application/javascript",
 		}
 
-		self.header,self.content = self._get_matter_and_content(relpath,header)
-		if "fetch" in self.header:
-			self.fetchContent = True
+		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		self.urlpath = "/" + self.path
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
@@ -297,7 +302,7 @@ class FileExpander(object):
 		if mime_type:
 			header["Content-Type"] = mime_type
 
-		self.header,rest = self._get_matter_and_content(relpath,header)
+		self.header,rest,self.fetchContent = self._get_matter_and_content(relpath,header)
 		self.content = rest.lstrip()
 
 		self.urlpath = "/" + self.path
