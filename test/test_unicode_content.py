@@ -26,7 +26,7 @@ def test_split_matter_content():
 		content = f.read()
 
 	#expander = FileExpander(site.PROJECT_DIR,"unicode.md",config=config)
-	#self.header,self.content = self._get_matter_and_content(relpath,header)
+	#self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 	config.split_matter_and_utf8_content(content,header)	
 
 def test_handler_content():

@@ -140,3 +140,19 @@ def test_populate_html_expansion():
 	assert exists(join(pages_test_root,"output","desktop","404.html"))
 	assert exists(join(pages_test_root,"output","desktop","with-ext.html"))
 
+def test_populate_scss():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w5"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+	})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","desktop","css","test.css"))
+

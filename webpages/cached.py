@@ -85,7 +85,7 @@ def cache_expander(expander,browser,config):
 	if expander.expandScss:
 		relpath = join(browser.browser_type,expander.path)
 		if exists(join(expander.base,relpath)):
-			header,content = expander._get_matter_and_content(relpath,expander.header)
+			header,content,fetch = expander._get_matter_and_content(relpath,expander.header)
 		else:
 			header,content = expander.header,expander.content
 		header = browser.expandHeader(header,config=expander.config)
