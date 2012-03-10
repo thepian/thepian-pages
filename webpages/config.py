@@ -39,8 +39,9 @@ class SiteConfig(object):
                         
                     #TODO list of properties to coerce to list
                     if "exclude" in self.config:
-                        if isinstance(self.config["exclude"],basestring):
-                            self.config["exclude"] = [ self.config["exclude"] ]
+                        exclude_config = self.config["exclude"]
+                        if isinstance(exclude_config,basestring):
+                            self.config["exclude"] = [e.strip() for e in exclude_config.split(",")]
 
         if hasattr(options,"port") and options.port:
             self.config["port"] = options.port

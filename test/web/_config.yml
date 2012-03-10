@@ -1,1 +1,1 @@
-exclude: mymodule
+exclude: mymodule, myother
