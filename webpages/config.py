@@ -180,7 +180,7 @@ class SiteConfig(object):
                 return False
 
             dirs = rel_path.split(os.sep)
-            print >>sys.stderr, dirs, exclude_list
+            # print >>sys.stderr, dirs, exclude_list
             for d in dirs:
                 if len(d) and d[0] == "_":
                     return False
