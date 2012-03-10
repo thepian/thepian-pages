@@ -22,6 +22,9 @@ def test_populate():
 	assert exists(join(pages_test_root,"output","desktop","js","html5.js"))
 	assert exists(join(pages_test_root,"output","pocket","js","html5.js"))
 	assert exists(join(pages_test_root,"output","tablet","js","html5.js"))
+	assert not exists(join(pages_test_root,"output","desktop","mymodule"))
+	assert not exists(join(pages_test_root,"output","pocket","mymodule"))
+	assert not exists(join(pages_test_root,"output","tablet","mymodule"))
 
 def test_populate_desktop_browser():
 

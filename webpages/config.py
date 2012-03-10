@@ -36,6 +36,11 @@ class SiteConfig(object):
                     self.config = yaml.load(raw.decode("utf-8"))
                     if type(self.config) is not dict:
                         self.config = { "config-error":"_config.yml is empty or malformed" }
+                        
+                    #TODO list of properties to coerce to list
+                    if "exclude" in self.config:
+                        if isinstance(self.config["exclude"],basestring):
+                            self.config["exclude"] = [ self.config["exclude"] ]
 
         if hasattr(options,"port") and options.port:
             self.config["port"] = options.port
@@ -175,11 +180,11 @@ class SiteConfig(object):
                 return False
 
             dirs = rel_path.split(os.sep)
+            print >>sys.stderr, dirs, exclude_list
             for d in dirs:
                 if len(d) and d[0] == "_":
                     return False
-            if len(dirs)>0:
-                if dirs[0] in exclude_list:
+                if d in exclude_list:
                     return False
             if split(base_path)[1] in exclude_list:
                 return False

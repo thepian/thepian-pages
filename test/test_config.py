@@ -116,7 +116,7 @@ def test_exclude():
 		filters.no_hidden,filters.no_system]
 
 	r = listdir(site.SITE_DIR,recursed=True,filters=base_filters)
-	#print >>sys.stderr, r
+	print >>sys.stderr, r
 	assert r == ["index.md","unicode.md","js/init.js"]
 
 def test_server_options():
