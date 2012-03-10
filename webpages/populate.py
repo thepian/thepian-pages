@@ -306,15 +306,19 @@ class FileExpander(object):
 		self.content = rest.lstrip()
 
 		self.urlpath = "/" + self.path
+		self.outpath = self.path
 		if "permalink" in self.header:
 			#TODO if it doesn't start with / look up special meaning keyword
 			#TODO replace :xxx with value of xxx (year,month,day,title,i_day,i_month,categories,tags)
 			self.urlpath = self.header["permalink"]
+			self.outpath = self.header["permalink"]
 		elif "url" in self.header:
 			self.urlpath = "/" + self.header["url"]
+			self.outpath = self.header["url"]
 			
 		if self.prefix:
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
+			self.outpath = "%s%s" % (self.prefix,self.urlpath)
 
 
 	FILE_EXTENSIONS = {

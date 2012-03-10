@@ -25,6 +25,10 @@ def test_populate():
 	assert not exists(join(pages_test_root,"output","desktop","mymodule"))
 	assert not exists(join(pages_test_root,"output","pocket","mymodule"))
 	assert not exists(join(pages_test_root,"output","tablet","mymodule"))
+	
+#TODO try making all types of FileExpander
+#TODO test presence of path, urlpath, outpath
+#TODO test permlink, path overrides
 
 def test_populate_desktop_browser():
 
