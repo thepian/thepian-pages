@@ -26,6 +26,7 @@ def test_populate():
 	assert not exists(join(pages_test_root,"output","pocket","mymodule"))
 	assert not exists(join(pages_test_root,"output","tablet","mymodule"))
 	
+	
 #TODO try making all types of FileExpander
 #TODO test presence of path, urlpath, outpath
 #TODO test permlink, path overrides
@@ -162,4 +163,34 @@ def test_populate_scss():
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","desktop","css","test.css"))
+
+def test_populate_parts():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w6"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+	})
+
+	populate(save_expander,config)
+
+	from BeautifulSoup import BeautifulSoup
+	assert exists(join(pages_test_root,"output","desktop","index.html"))
+	with open(join(pages_test_root,"output","desktop","index.html")) as f:
+	    index_html = f.read()
+	soup = BeautifulSoup(index_html)
+
+	assert soup("article",id="a1")[0].string.strip() == "myarticle"
+	assert soup("article",id="a4")[0].string.strip() == "myarticle"
+	assert soup("aside",id="a2")[0].string.strip() == "myaside"
+	assert soup("nav",id="n1")[0].string.strip() == "nav1"
+	# assert soup("section",id="s1")[0].contents[1].string.strip() == "<h1>header1</h1>"
+	
+	assert soup("form",id="f1")[0].button.string.strip() == "submit 1"
+	assert soup("form",id="f2")[0].button.string.strip() == "submit 1"
 

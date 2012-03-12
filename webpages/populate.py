@@ -271,6 +271,7 @@ class FileExpander(object):
 	def _js_file(self,relpath):
 		header = {
 			"Content-Type": "application/javascript",
+			"templated": False,
 		}
 
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)

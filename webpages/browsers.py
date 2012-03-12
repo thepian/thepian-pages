@@ -74,15 +74,18 @@ class PartDocument(object):
 
 		return soup
 
-	def expandTags(self,soup,tagName):
+	def expandTags(self,soup,tagName,attrs=("id",)):
 		tags = soup.findAll(tagName)
 		for tag in tags:
 			part = None
 			if tag.get("inline-id"):
 				part = PartFile(self.specific,tag["inline-id"],tagName)
 				del tag["inline-id"]
-			elif tag.get("id"):
-				part = PartFile(self.specific,tag["id"],tagName)
+			else:
+			    for attr in attrs:
+			        if tag.get(attr):
+				        part = PartFile(self.specific,tag[attr],tagName)
+				        break
 
 			if part and exists(part.path):
 				header,rest = self.config.split_matter_and_utf8_content(part.read(),{})
@@ -96,16 +99,18 @@ class PartDocument(object):
 	def expandSoup(self,content):
 		soup = self.wrapDocumentSoup(content)
 
-		# expand the sections
-		self.expandTags(soup,"article")
-		self.expandTags(soup,"aside")
-		self.expandTags(soup,"section")
-		self.expandTags(soup,"nav")
-		self.expandTags(soup,"header")
-		self.expandTags(soup,"footer")
+		# expand the outline elements
+		self.expandTags(soup,"article", attrs=("src","id"))
+		self.expandTags(soup,"aside", attrs=("src","id"))
+		self.expandTags(soup,"section", attrs=("src","id"))
+		self.expandTags(soup,"nav", attrs=("src","id"))
+		self.expandTags(soup,"header", attrs=("src","id"))
+		self.expandTags(soup,"footer", attrs=("src","id"))
 
 		self.expandTags(soup,"script")
 		self.expandTags(soup,"style")
+
+		self.expandTags(soup,"form", attrs=("src","id"))
 
 		return soup
 

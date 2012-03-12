@@ -22,6 +22,11 @@ class CachedHandler(tornado.web.RequestHandler):
         if "page-tail" in descr: return False
 
         return True
+        
+    def is_templated(self,descr):
+        if "templated" in descr:
+            return descr["templated"]
+        return True
     
     def get_redis_content(self,path,browser_type,domain,include_body=True):
         contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , domain, path) 
@@ -65,10 +70,13 @@ class CachedHandler(tornado.web.RequestHandler):
         content = REDIS[contentkey]
         if not self.is_binary_content(descr):
             content = unicode(content,"utf-8")
-            #site_info = { "posts":[] } #TODO mix in SiteConfig and additional info
-            site_object = self.application.config.site_object
-            t = tornado.template.Template(page_head + content + page_tail)   
-            self.write(t.generate(page=ObjectLike(page_data), list=lists, site=site_object))
+            if self.is_templated(descr):
+                #site_info = { "posts":[] } #TODO mix in SiteConfig and additional info
+                site_object = self.application.config.site_object
+                t = tornado.template.Template(page_head + content + page_tail)   
+                self.write(t.generate(page=ObjectLike(page_data), list=lists, site=site_object))
+            else:
+                self.write(content)
         else:
             self.write(content)
 
