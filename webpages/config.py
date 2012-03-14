@@ -181,7 +181,9 @@ class SiteConfig(object):
                 return False
 
             dirs = rel_path.split(os.sep)
-            # print >>sys.stderr, dirs, exclude_list
+            #print >>sys.stderr, base_path, '/'.join(dirs), exclude_list
+            if '/'.join(dirs) in exclude_list:    # paths with slashes
+                return False
             for d in dirs:
                 if len(d) and d[0] == "_":
                     return False

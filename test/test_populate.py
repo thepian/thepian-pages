@@ -194,3 +194,28 @@ def test_populate_parts():
 	assert soup("form",id="f1")[0].button.string.strip() == "submit 1"
 	assert soup("form",id="f2")[0].button.string.strip() == "submit 1"
 
+def test_populate_exclude_published():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w6"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+	})
+
+	populate(save_expander,config)
+
+	assert not exists(join(pages_test_root,"output","desktop","not-published","index.html"))
+	assert not exists(join(pages_test_root,"output","desktop","css","unpublished-test.css"))
+	assert not exists(join(pages_test_root,"output","desktop","js","unpublished.js"))
+	assert not exists(join(pages_test_root,"output","desktop","internal","page1","index.html"))
+	
+	#TODO fix base_path for filter calls in fs module
+	#assert not exists(join(pages_test_root,"output","desktop","test","test","internal2","page2","index.html"))
+	
+	#TODO file ext, paths
+

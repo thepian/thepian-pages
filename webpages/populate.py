@@ -396,8 +396,8 @@ def save_expander(expander,browser,config):
 		file_path = join(base_path,expander.outpath[1:])
 	dir_path = dirname(file_path)
 
-	if not expander.published and exists(file_path):
-		os.remove(file_path)
+	if not expander.published:
+		if exists(file_path): os.remove(file_path)
 		return
 	if not exists(dir_path):
 		os.makedirs(dir_path)
@@ -457,7 +457,6 @@ ASSETS_URL = '/static/assets/'
 	if site.SCSS_DIR:
 		for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
 			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
-			#TODO ensure that _x.scss is not published
 			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 			for browser in browsers:
 				if not config["browser"] or config["browser"] == browser.browser_type:
