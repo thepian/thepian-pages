@@ -48,8 +48,8 @@ def test_populate_desktop_browser():
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","js","html5.js"))
-	h5size = getsize(join(pages_test_root,"html5-patch.js"))
-	disclsize = getsize(join(pages_test_root,"lead-disclaimer.js"))
+	h5size = getsize(join(pages_test_root,"resources","html5-patch.js"))
+	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
 
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
 
@@ -101,7 +101,7 @@ def test_populate_http_fetch():
 			self.send_header('Content-type',"text/javascript")
 			self.end_headers()
 			jsf = None
-			with open(join(pages_test_root,"html5-patch.js")) as f:
+			with open(join(pages_test_root,"resources","html5-patch.js")) as f:
 				jsf = f.read()
 			self.wfile.write(jsf)
 
@@ -114,9 +114,9 @@ def test_populate_http_fetch():
 	httpd_thread.start()
 
 	populate(save_expander,config)
-	h5size = getsize(join(pages_test_root,"html5-patch.js"))
-	disclsize = getsize(join(pages_test_root,"lead-disclaimer.js"))
-	fofsize = getsize(join(pages_test_root,"fourofour.html"))
+	h5size = getsize(join(pages_test_root,"resources","html5-patch.js"))
+	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
+	fofsize = getsize(join(pages_test_root,"resources","fourofour.html"))
 
 	assert exists(join(pages_test_root,"output","js","html5.js"))
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == h5size # disclsize

@@ -1,4 +1,4 @@
 ---
 fetch: 
- - ../../html5-patch.js
+ - ../../resources/html5-patch.js
 ---
