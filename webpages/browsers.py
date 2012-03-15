@@ -219,6 +219,7 @@ class BrowserSpecific(object):
 			with open(fetch_abs,"rb") as f:
 				content = f.read()
 			defaultheader = {}
+			#TODO recursive fetch
 			header,content = config.split_matter_and_utf8_content(content,defaultheader)
 			return content
 
@@ -226,7 +227,7 @@ class BrowserSpecific(object):
 		#TODO joining strategies for different content, binary files - no shims
 		fetch = "fetch" in header and header["fetch"] or header["content"]
 		if type(fetch) == list:
-			return "".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
+			return u"".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
 		else:
 			return self._fetch(fetch,config=config,basedir=basedir)
 
