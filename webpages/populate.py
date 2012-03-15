@@ -423,9 +423,12 @@ def save_expander(expander,browser,config):
 		if "encoding" not in header:
 			header["encoding"] = "utf-8"
 		content = expander.content
+		#TODO javascript as unicode
+		# if header["encoding"] == "utf-8":
+		# 	content = unicode(expander.content,"utf-8")
 		#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
-	# print >>sys.stderr, header["encoding"], type(content)
+	print header["encoding"], type(content), file_path.replace(base_path,"")
 	# with codecs.open(file_path,mode="wb",encoding=header["encoding"] or "utf-8") as f:
 	with open(file_path,"w") as f:
 		# print "writing", file_path
@@ -453,10 +456,15 @@ ASSETS_URL = '/static/assets/'
 """
 
 	base_filters = [config.exclude_filter(),filters.no_hidden,filters.no_system]
+	css_prefix = "css"
+	js_prefix = "js"
+	if config["assets-base"]:
+		css_prefix = "%s/css" % config["assets-base"]
+		js_prefix = "%s/js" % config["assets-base"]
 
 	if site.SCSS_DIR:
 		for relpath in listdir(site.SCSS_DIR,filters=base_filters+[filters.fnmatch("*.scss"),]):
-			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix="css")
+			expander = FileExpander(site.SCSS_DIR,relpath,config=config,prefix=css_prefix)
 			#setattr(scss,"LOAD_PATHS",site.SCSS_DIR)
 			for browser in browsers:
 				if not config["browser"] or config["browser"] == browser.browser_type:
@@ -472,7 +480,7 @@ ASSETS_URL = '/static/assets/'
 			#TODO figure out the relevant one
 
 		for relpath in listdir(site.LIBS_DIR, filters=[filters.no_directories,filters.fnmatch("*.js")]):
-			expander = FileExpander(site.LIBS_DIR,relpath,config=config,prefix="js")
+			expander = FileExpander(site.LIBS_DIR,relpath,config=config,prefix=js_prefix)
 			prefix = expander.name_parts[0]
 			if prefix in builders:
 				builder = builders[prefix]

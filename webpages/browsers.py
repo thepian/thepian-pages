@@ -200,7 +200,8 @@ class BrowserSpecific(object):
 		from scss import Scss
 		#TODO offline images
 		css = Scss()
-		return css.compile(content)
+		#TODO scss unicode call
+		return unicode(css.compile(content))
 
 
 	def partDocument(self,name,config):
@@ -214,8 +215,12 @@ class BrowserSpecific(object):
 		else:
 			logging.info("Fetching %s from %s" % (ref,basedir))
 			fetch_abs = abspath(join(basedir,ref))
+			content = None
 			with open(fetch_abs,"rb") as f:
-				return f.read()
+				content = f.read()
+			defaultheader = {}
+			header,content = config.split_matter_and_utf8_content(content,defaultheader)
+			return content
 
 	def fetchContent(self,header,config=None,basedir=None):
 		#TODO joining strategies for different content, binary files - no shims

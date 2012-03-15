@@ -219,3 +219,22 @@ def test_populate_exclude_published():
 	
 	#TODO file ext, paths
 
+def test_populate_assets():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+	
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w7"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+		"browser": "desktop",		
+	})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","index.html"))
+	assert exists(join(pages_test_root,"output","public","js","html5.js"))
+	assert exists(join(pages_test_root,"output","public","css","test.css"))
+
