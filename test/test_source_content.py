@@ -7,6 +7,7 @@ from webpages import apply_site_dirs, server_options_parser, populate_options_pa
 from webpages.base import ObjectLike
 from webpages.config import SiteConfig
 from webpages.populate import FileExpander
+from webpages.browsers import browsers
 
 """
 encoding: .. specify the encoding of the content part and the destination encoding if not overridden if __name__ == '__main__':
@@ -27,7 +28,10 @@ def test_split_matter_content():
 
 	#expander = FileExpander(site.PROJECT_DIR,"unicode.md",config=config)
 	#self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
-	config.split_matter_and_utf8_content(content,header)	
+	header2,content2 = config.split_matter_and_utf8_content(content,header)	
+	assert type(content2) == unicode
+	assert "test" in header2
+	assert type(header2["test"]) == unicode
 
 def test_handler_content():
 	pass
@@ -53,3 +57,16 @@ abc---def
 	header2,content2 = config.split_matter_and_utf8_content(content,header)	
 	#print >>sys.stderr, "from:", content2, "to:", expected, "end"
 	assert content2 == expected
+
+def test_fetch_content():
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
+	config = SiteConfig({})
+
+	basedir = join(pages_test_root,"web")
+	header = {
+		"Content-Type": "text/javascript",
+		"content": ["../resources/html5-patch.js","abc_shim.js"]
+	}
+	content = browsers[0].fetchContent(header,config,basedir)
+	assert type(content) == unicode

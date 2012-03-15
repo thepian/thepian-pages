@@ -117,7 +117,7 @@ def test_exclude():
 
 	r = listdir(site.SITE_DIR,recursed=True,filters=base_filters)
 	print >>sys.stderr, r
-	assert r == ["index.md","unicode.md","js/init.js"]
+	assert r == ["abc_shim.js","index.md","unicode.md","js/init.js"]
 
 def test_server_options():
 	options, r = server_options_parser.parse_args(args=["--nofork"])
