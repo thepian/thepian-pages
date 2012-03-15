@@ -127,6 +127,9 @@ def test_populate_http_fetch():
 	assert exists(join(pages_test_root,"output","404","index.html"))
 	assert getsize(join(pages_test_root,"output","404","index.html")) == fofsize
 
+	assert exists(join(pages_test_root,"output","js","test.js"))
+	assert getsize(join(pages_test_root,"output","js","test.js")) == 0
+
 	#httpd_thread.stop()
 
 def test_populate_html_expansion():

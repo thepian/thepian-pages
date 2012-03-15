@@ -1,0 +1,3 @@
+---
+content: test-fetched.js
+---
