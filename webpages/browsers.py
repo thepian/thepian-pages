@@ -211,7 +211,14 @@ class BrowserSpecific(object):
 		if ref[:5] == "http:":
 			from urllib2 import urlopen
 			response = urlopen(ref)
-			return response.read()
+			raw = response.read()
+			encoding = "utf-8"
+			if "content-type" in response.headers:
+				charset = response.headers['content-type'].split('charset=')
+				if len(charset) > 1:
+					encoding = charset[-1]
+			content = unicode(raw, encoding)
+			return content
 		else:
 			logging.info("Fetching %s from %s" % (ref,basedir))
 			fetch_abs = abspath(join(basedir,ref))

@@ -146,7 +146,7 @@ class SiteConfig(object):
             return matter, self.expand_site_variables(unicode(rest,encoding))
 
         #print "parts(1)", content
-        return header, self.expand_site_variables(content)
+        return header, self.expand_site_variables(unicode(content,"utf-8"))
         
     def describe_area_matter(self,name):
         matter = {}

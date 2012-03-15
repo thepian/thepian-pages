@@ -126,6 +126,7 @@ class FileExpander(object):
 	def _scss_file(self,relpath):
 		header = {
 			"Content-Type": "text/css",
+			"encoding": "utf-8",
 		}
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
@@ -147,6 +148,7 @@ class FileExpander(object):
 	def _xml_file(self,relpath):
 		header = {
 			"Content-Type": "text/xml",
+			"encoding": "utf-8",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
@@ -173,6 +175,7 @@ class FileExpander(object):
 	def _text_file(self,relpath):
 		header = {
 			"Content-Type": "text/plain",
+			"encoding": "utf-8",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
@@ -199,6 +202,7 @@ class FileExpander(object):
 	def _html_file(self,relpath):
 		header = {
 			"Content-Type": "text/html",
+			"encoding": "utf-8",
 		}
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
@@ -231,6 +235,7 @@ class FileExpander(object):
 	def _markdown_file(self,relpath):
 		header = {
 			"Content-Type": "text/html",
+			"encoding": "utf-8",
 		}
 		self.header,rest,self.fetchContent = self._get_matter_and_content(relpath,header)
 		#TODO content/fetch ?
@@ -272,6 +277,7 @@ class FileExpander(object):
 		header = {
 			"Content-Type": "application/javascript",
 			"templated": False,
+			"encoding": "utf-8",
 		}
 
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
@@ -298,6 +304,7 @@ class FileExpander(object):
 	def _appcache_file(self,relpath):
 		header = {
 			"Content-Type": "text/cache-manifest",
+			"encoding": "utf-8",
 		}
 		mime_type,encoding = mimetypes.guess_type(self.path)
 		if mime_type:
@@ -411,28 +418,32 @@ def save_expander(expander,browser,config):
 		header = browser.expandHeader(header,config=expander.config)
 		content = browser.expandScss(header,content,config=expander.config)
 		#expander.update_lists(header,{ "offline": [expander.urlpath] })
+		if "encoding" in header:
+			content = content.encode(header["encoding"])
 	elif expander.expandDocument:
 		header = browser.expandHeader(expander.header,config=expander.config)
 		content, lists = browser.expandDocument(header,expander.content,config=expander.config)
 		#expander.update_lists(header,lists)
+		if "encoding" in header:
+			content = content.encode(header["encoding"])
 	elif expander.fetchContent:
 		header = expander.header
 		content = browser.fetchContent(header,config=expander.config,basedir=dirname(join(expander.base,expander.path)))
+		if "encoding" in header:
+			content = content.encode(header["encoding"])
 	else:
 		header = expander.header
-		if "encoding" not in header:
-			header["encoding"] = "utf-8"
 		content = expander.content
-		#TODO javascript as unicode
-		# if header["encoding"] == "utf-8":
-		# 	content = unicode(expander.content,"utf-8")
+		try:
+			if "encoding" in header:
+				content = content.encode(header["encoding"])
+		except Exception,e:
+			print >>sys.stderr, "failed to encode", expander.path
 		#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
-	print header["encoding"], type(content), file_path.replace(base_path,"")
-	# with codecs.open(file_path,mode="wb",encoding=header["encoding"] or "utf-8") as f:
-	with open(file_path,"w") as f:
-		# print "writing", file_path
-		# ucontent = unicode(content,"utf-8")
+	encoding = "encoding" in header and header["encoding"] or None
+	print encoding, type(content), file_path.replace(base_path,"")
+	with open(file_path,"wb") as f:
 		f.write(content)
 
 # populate with files that have an extension and do not start with _
