@@ -9,10 +9,30 @@ class PartFile(object):
 	"""
 
 	def __init__(self,specific,name,tag):
+	    if hasattr(self,"init_%s" % tag):
+	        self.path = getattr(self,"init_%s" % tag)(specific,name,tag)
+	    else:
+	        self.path = self.init_html(specific,name,tag)
+
+	def read(self):
+		with open(self.path,'rb') as f:
+			return f.read()
+			
+	def init_script(self,specific,name,tag):
 		bits = name.split(u"/")
 		prefix = join(site.PARTS_DIR,*bits[:-1])
 		just_name = bits[-1]
 
+		path = join(prefix, specific.browser_type, "%s.%s.js" % (just_name,tag))
+		if not exists(path):
+			path = join(prefix, "%s.%s.js" % (just_name,tag))
+		return path
+		
+	def init_html(self,specific,name,tag):
+		bits = name.split(u"/")
+		prefix = join(site.PARTS_DIR,*bits[:-1])
+		just_name = bits[-1]
+		
 		path = join(prefix, specific.browser_type, "%s.%s.markdown" % (just_name,tag))
 		if not exists(path):
 			path = join(prefix, "%s.%s.markdown" % (just_name,tag))
@@ -20,12 +40,7 @@ class PartFile(object):
 				path = join(prefix, specific.browser_type, "%s.%s.html" % (just_name,tag))
 				if not exists(path):
 					path = join(prefix, "%s.%s.html" % (just_name,tag))
-
-		self.path = path
-
-	def read(self):
-		with open(self.path,'rb') as f:
-			return f.read()
+		return path
 
 class PartDocument(object):
 
@@ -78,7 +93,10 @@ class PartDocument(object):
 		tags = soup.findAll(tagName)
 		for tag in tags:
 			part = None
-			if tag.get("inline-id"):
+			if tag.get("inline-src"):
+				part = PartFile(self.specific,tag["inline-src"],tagName)
+				del tag["inline-src"]
+			elif tag.get("inline-id"):
 				part = PartFile(self.specific,tag["inline-id"],tagName)
 				del tag["inline-id"]
 			else:

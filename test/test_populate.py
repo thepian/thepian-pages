@@ -193,4 +193,7 @@ def test_populate_parts():
 	
 	assert soup("form",id="f1")[0].button.string.strip() == "submit 1"
 	assert soup("form",id="f2")[0].button.string.strip() == "submit 1"
+	
+	assert soup("script",id="conf")[0].string.strip() == 'window.myconf = { "a":"a"};'
+	assert "inline-src" not in soup("script",id="conf")[0]
 
