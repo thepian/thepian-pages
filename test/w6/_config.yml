@@ -1,1 +1,4 @@
-exclude: mymodule, myother
+exclude: 
+- mymodule
+- internal
+- test/test/internal2

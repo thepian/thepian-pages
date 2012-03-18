@@ -218,7 +218,8 @@ class BrowserSpecific(object):
 		from scss import Scss
 		#TODO offline images
 		css = Scss()
-		return css.compile(content)
+		#TODO scss unicode call
+		return unicode(css.compile(content))
 
 
 	def partDocument(self,name,config):
@@ -228,18 +229,30 @@ class BrowserSpecific(object):
 		if ref[:5] == "http:":
 			from urllib2 import urlopen
 			response = urlopen(ref)
-			return response.read()
+			raw = response.read()
+			encoding = "utf-8"
+			if "content-type" in response.headers:
+				charset = response.headers['content-type'].split('charset=')
+				if len(charset) > 1:
+					encoding = charset[-1]
+			content = unicode(raw, encoding)
+			return content
 		else:
 			logging.info("Fetching %s from %s" % (ref,basedir))
 			fetch_abs = abspath(join(basedir,ref))
+			content = None
 			with open(fetch_abs,"rb") as f:
-				return f.read()
+				content = f.read()
+			defaultheader = {}
+			#TODO recursive fetch
+			header,content = config.split_matter_and_utf8_content(content,defaultheader)
+			return content
 
 	def fetchContent(self,header,config=None,basedir=None):
 		#TODO joining strategies for different content, binary files - no shims
 		fetch = "fetch" in header and header["fetch"] or header["content"]
 		if type(fetch) == list:
-			return "".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
+			return u"".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
 		else:
 			return self._fetch(fetch,config=config,basedir=basedir)
 

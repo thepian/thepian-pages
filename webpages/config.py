@@ -17,6 +17,7 @@ class SiteConfig(object):
         "output": None,
         "port": 4444,
         "browser": None,
+        "assets-base": None,
     }
     
     def __init__(self,options):
@@ -145,7 +146,7 @@ class SiteConfig(object):
             return matter, self.expand_site_variables(unicode(rest,encoding))
 
         #print "parts(1)", content
-        return header, self.expand_site_variables(content)
+        return header, self.expand_site_variables(unicode(content,"utf-8"))
         
     def describe_area_matter(self,name):
         matter = {}
@@ -181,7 +182,9 @@ class SiteConfig(object):
                 return False
 
             dirs = rel_path.split(os.sep)
-            # print >>sys.stderr, dirs, exclude_list
+            #print >>sys.stderr, base_path, '/'.join(dirs), exclude_list
+            if '/'.join(dirs) in exclude_list:    # paths with slashes
+                return False
             for d in dirs:
                 if len(d) and d[0] == "_":
                     return False

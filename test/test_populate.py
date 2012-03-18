@@ -48,8 +48,8 @@ def test_populate_desktop_browser():
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","js","html5.js"))
-	h5size = getsize(join(pages_test_root,"html5-patch.js"))
-	disclsize = getsize(join(pages_test_root,"lead-disclaimer.js"))
+	h5size = getsize(join(pages_test_root,"resources","html5-patch.js"))
+	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
 
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
 
@@ -101,7 +101,7 @@ def test_populate_http_fetch():
 			self.send_header('Content-type',"text/javascript")
 			self.end_headers()
 			jsf = None
-			with open(join(pages_test_root,"html5-patch.js")) as f:
+			with open(join(pages_test_root,"resources","html5-patch.js")) as f:
 				jsf = f.read()
 			self.wfile.write(jsf)
 
@@ -114,9 +114,9 @@ def test_populate_http_fetch():
 	httpd_thread.start()
 
 	populate(save_expander,config)
-	h5size = getsize(join(pages_test_root,"html5-patch.js"))
-	disclsize = getsize(join(pages_test_root,"lead-disclaimer.js"))
-	fofsize = getsize(join(pages_test_root,"fourofour.html"))
+	h5size = getsize(join(pages_test_root,"resources","html5-patch.js"))
+	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
+	fofsize = getsize(join(pages_test_root,"resources","fourofour.html"))
 
 	assert exists(join(pages_test_root,"output","js","html5.js"))
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == h5size # disclsize
@@ -126,6 +126,9 @@ def test_populate_http_fetch():
 	assert getsize(join(pages_test_root,"output","js","html5-2.js")) == h5size
 	assert exists(join(pages_test_root,"output","404","index.html"))
 	assert getsize(join(pages_test_root,"output","404","index.html")) == fofsize
+
+	assert exists(join(pages_test_root,"output","js","test.js"))
+	assert getsize(join(pages_test_root,"output","js","test.js")) == 0
 
 	#httpd_thread.stop()
 
@@ -196,4 +199,48 @@ def test_populate_parts():
 	
 	assert soup("script",id="conf")[0].string.strip() == 'window.myconf = { "a":"a"};'
 	assert "inline-src" not in soup("script",id="conf")[0]
+
+def test_populate_exclude_published():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w6"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+	})
+
+	populate(save_expander,config)
+
+	assert not exists(join(pages_test_root,"output","desktop","not-published","index.html"))
+	assert not exists(join(pages_test_root,"output","desktop","css","unpublished-test.css"))
+	assert not exists(join(pages_test_root,"output","desktop","js","unpublished.js"))
+	assert not exists(join(pages_test_root,"output","desktop","internal","page1","index.html"))
+	
+	#TODO fix base_path for filter calls in fs module
+	#assert not exists(join(pages_test_root,"output","desktop","test","test","internal2","page2","index.html"))
+	
+	#TODO file ext, paths
+
+def test_populate_assets():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+	
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w7"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+		"browser": "desktop",		
+	})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","index.html"))
+	assert exists(join(pages_test_root,"output","public","js","html5.js"))
+	assert exists(join(pages_test_root,"output","public","css","test.css"))
 

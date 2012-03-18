@@ -1,4 +1,4 @@
 ---
 content: 
- - http://localhost:64321/html5-patch.js
+ - http://localhost:64321/resources/html5-patch.js
 ---

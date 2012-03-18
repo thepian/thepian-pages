@@ -1,5 +1,5 @@
 ---
 fetch: 
- - ../../lead-disclaimer.js
- - ../../html5-patch.js
+ - ../../resources/lead-disclaimer.js
+ - ../../resources/html5-patch.js
 ---
