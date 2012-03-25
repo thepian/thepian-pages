@@ -188,8 +188,10 @@ def test_populate_parts():
 	    index_html = f.read()
 	soup = BeautifulSoup(index_html)
 
-	assert soup("article",id="a1")[0].string.strip() == "myarticle"
-	assert soup("article",id="a4")[0].string.strip() == "myarticle"
+	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
+	assert soup("article",id="a1")[0].contents[1].string.strip() == "section two"
+	assert soup("article",id="a4")[0].contents[0].strip() == "myarticle"
+	assert soup("article",id="a4")[0].contents[1].string.strip() == "section two"
 	assert soup("aside",id="a2")[0].string.strip() == "myaside"
 	assert soup("nav",id="n1")[0].string.strip() == "nav1"
 	# assert soup("section",id="s1")[0].contents[1].string.strip() == "<h1>header1</h1>"
@@ -243,4 +245,36 @@ def test_populate_assets():
 	assert exists(join(pages_test_root,"output","index.html"))
 	assert exists(join(pages_test_root,"output","public","js","html5.js"))
 	assert exists(join(pages_test_root,"output","public","css","test.css"))
+
+def test_populate_stateful():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+	
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w8"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+		"browser": "desktop",		
+	})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","index.html"))
+
+	from BeautifulSoup import BeautifulSoup
+	assert exists(join(pages_test_root,"output","index.html"))
+	with open(join(pages_test_root,"output","index.html")) as f:
+	    index_html = f.read()
+	soup = BeautifulSoup(index_html)
+
+	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
+	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
+	assert soup("script")[2].string.strip() == """\
+declare("a1",{"encoding": "utf-8", "layouter": "deck", "stage": ["upper", "lower", "sides"]});
+declare("s1",{"encoding": "utf-8", "laidout": "card"});
+declare("a2",{"encoding": "utf-8", "layouter": "deck"});"""
+	# assert False
+	#TODO document properties if stateful
 

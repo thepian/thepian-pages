@@ -51,6 +51,7 @@ class PartDocument(object):
 		self.header = {}
 		self.rest = None
 		self.parent = None
+		self.statefulConfigs = {}
 
 		doc = PartFile(specific,name,"document")
 		
@@ -89,10 +90,29 @@ class PartDocument(object):
 
 		return soup
 
+	def statefulConfigScript(self):
+		import json
+
+		STATEFUL_CONFIG_ENTRY = u"""\
+declare("%(id)s",%(json)s);
+"""
+
+		lines = []
+		for c in self.statefulConfigs:
+			lines.append(STATEFUL_CONFIG_ENTRY % {
+				"id": c,
+				"value": self.statefulConfigs[c],
+				"json": json.dumps(self.statefulConfigs[c], sort_keys=True),
+				})
+		if len(lines):
+			return u"".join(lines)
+		return None 
+
 	def expandTags(self,soup,tagName,attrs=("id",)):
 		tags = soup.findAll(tagName)
 		for tag in tags:
 			part = None
+			config_id = None
 			if tag.get("inline-src"):
 				part = PartFile(self.specific,tag["inline-src"],tagName)
 				del tag["inline-src"]
@@ -102,6 +122,7 @@ class PartDocument(object):
 			else:
 			    for attr in attrs:
 			        if tag.get(attr):
+			        	config_id = tag[attr]
 				        part = PartFile(self.specific,tag[attr],tagName)
 				        break
 
@@ -110,7 +131,11 @@ class PartDocument(object):
 				nested = BeautifulSoup(rest)
 				for c in reversed(nested.contents):
 					tag.insert(0,c)
+				if config_id:
+					setattr(tag,'config_id',config_id)
+					self.statefulConfigs[config_id] = header
 				#TODO parse with soup to support breaking out header/footer ?
+				#TODO script
 				
 
 
@@ -165,6 +190,15 @@ class BrowserSpecific(object):
 		part = self.partDocument(header["document"],config)
 		soup = part.expandSoup(content)
 		header = part.get_collapsed_header(header=header)
+		stateful_doc = "stateful" in header and header["stateful"] is True
+
+		if stateful_doc:
+			script = part.statefulConfigScript()
+			if script:
+				script_tag = Tag(soup,"script")
+				script_tag["type"] = "application/config"
+				script_tag.setString(script)
+				soup.body.append(script_tag)
 
 		# fill in meta tags
 		if "description" in header:
