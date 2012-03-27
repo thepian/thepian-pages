@@ -1,7 +1,7 @@
 from __future__ import with_statement
 import os, stat, site, codecs, logging
 from os.path import join, exists, abspath, splitext, split
-from BeautifulSoup import BeautifulSoup, Tag, NavigableString
+from bs4 import BeautifulSoup, Tag, NavigableString
 from soupselect import select
 
 class AreaInfo(object):
@@ -60,7 +60,8 @@ class PartFile(object):
 
 class PartDocument(object):
 
-	auto_config_id = 1 #TODO make it top doc unique
+	auto_config_id = 0 #TODO make it top doc unique
+	auto_tracker_id = 0
 
 	def __init__(self,specific,name,config):
 		self.specific = specific
@@ -195,14 +196,16 @@ declare("%(id)s",%(json)s);
 		matter = self.statefulConfigs[config_id] = config_id in self.statefulConfigs and self.statefulConfigs[config_id] or {}
 		matter["tracker-driven"] = props
 
-		tracker = Tag(soup,"div")
+		tracker = soup.new_tag("div")
+		self.auto_tracker_id += 1
+		tracker["id"] = "trk-%s" % self.auto_tracker_id
 		classNames = []
 		if "class" in element: classNames = element["class"].split(" ")
-		classNames += ["tracker", "%s-tracker" % element.tag]
+		classNames += ["tracker", "%s-tracker" % element.name]
 		tracker["class"] = " ".join(classNames)
-		# tracker.insertBefore(element)
+		element.insert_before(tracker)
 
-		matter["driven-by"] = "" #TODO tracker["id"]
+		matter["driven-by"] = tracker["id"]
 
 	def getAreaOrder(self,element,areaName):
 		if areaName not in self.areas:
@@ -294,9 +297,9 @@ class BrowserSpecific(object):
 		if stateful_doc:
 			script = part.statefulConfigScript()
 			if script:
-				script_tag = Tag(soup,"script")
+				script_tag = soup.new_tag("script")
 				script_tag["type"] = "application/config"
-				script_tag.setString(script)
+				script_tag.string = script
 				soup.body.append(script_tag)
 
 		# fill in meta tags
@@ -309,7 +312,7 @@ class BrowserSpecific(object):
 		if "title" in header:
 			#TODO site.title-template "{{ page.title }} - My App"
 			for t in select(soup,"title"):
-				t.setString(header["title"])
+				t.string = header["title"]
 		#TODO elif site.title
 
 		if config["appcache"] == False:
