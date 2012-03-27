@@ -6,7 +6,7 @@ from os.path import dirname, join, exists, getsize
 pages_test_root = dirname(__file__)
 
 def get_soup(path):
-	from BeautifulSoup import BeautifulSoup
+	from bs4 import BeautifulSoup
 	assert exists(path)
 	index_html = None
 	with open(path) as f:
@@ -225,9 +225,9 @@ declare("a1",{"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter":
 declare("s2",{"area-names": ["lower"], "encoding": "utf-8", "laidout": "area-member"});
 declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"});"""
 
-	assert soup("article",id="a1")[0]["class"] == "upper-area-inactive lower-area-inactive"
-	assert soup("section",id="s1")[0]["class"] == "in-upper-area in-upper-order-0"
-	assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
+	assert soup.article["class"] == [u"upper-area-inactive",u"lower-area-inactive"]
+	assert soup.find("section",id="s1")["class"] == [u"in-upper-area",u"in-upper-order-0"]
+	assert soup.find("section",id="s2")["class"] == [u"in-lower-area",u"in-lower-order-0"]
 	# assert False
 	#TODO document properties if stateful
 
@@ -254,7 +254,7 @@ declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-mem
 declare("%(s2id)s",{"driven-by": "%(s2trk)s", "tracker-driven": ["left", "top"]});""" % { "s2id": s2id, "s2trk":s2trk }
 
 	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
-	assert trackerTwo["class"] == "tracker section-tracker"
+	assert trackerTwo["class"] == [u"tracker",u"section-tracker"]
 	# assert False
 	#TODO document properties if stateful
 
