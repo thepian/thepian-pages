@@ -5,6 +5,14 @@ import shutil
 from os.path import dirname, join, exists, getsize
 pages_test_root = dirname(__file__)
 
+def get_soup(path):
+	from BeautifulSoup import BeautifulSoup
+	assert exists(path)
+	index_html = None
+	with open(path) as f:
+	    index_html = f.read()
+	return BeautifulSoup(index_html)
+
 def test_populate():
 	from webpages import apply_site_dirs
 	from webpages.config import SiteConfig
@@ -182,11 +190,7 @@ def test_populate_parts():
 
 	populate(save_expander,config)
 
-	from BeautifulSoup import BeautifulSoup
-	assert exists(join(pages_test_root,"output","desktop","index.html"))
-	with open(join(pages_test_root,"output","desktop","index.html")) as f:
-	    index_html = f.read()
-	soup = BeautifulSoup(index_html)
+	soup = get_soup(join(pages_test_root,"output","desktop","index.html"))
 
 	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
 	assert soup("article",id="a1")[0].contents[1].string.strip() == "section two"
@@ -261,13 +265,8 @@ def test_populate_stateful():
 	})
 
 	populate(save_expander,config)
-	assert exists(join(pages_test_root,"output","index.html"))
 
-	from BeautifulSoup import BeautifulSoup
-	assert exists(join(pages_test_root,"output","index.html"))
-	with open(join(pages_test_root,"output","index.html")) as f:
-	    index_html = f.read()
-	soup = BeautifulSoup(index_html)
+	soup = get_soup(join(pages_test_root,"output","index.html"))
 
 	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
 	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
@@ -275,6 +274,39 @@ def test_populate_stateful():
 declare("a1",{"encoding": "utf-8", "layouter": "deck", "stage": ["upper", "lower", "sides"]});
 declare("s1",{"encoding": "utf-8", "laidout": "card"});
 declare("a2",{"encoding": "utf-8", "layouter": "deck"});"""
+	# assert False
+	#TODO document properties if stateful
+
+def test_populate_areas():
+	from webpages import apply_site_dirs
+	from webpages.config import SiteConfig
+	from webpages.populate import populate, save_expander
+	
+	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"w9"))
+
+	config = SiteConfig({
+		"dest": join(pages_test_root,"output"),
+		"browser": "desktop",		
+	})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","index.html"))
+
+	soup = get_soup(join(pages_test_root,"output","index.html"))
+
+	assert soup("article",id="a1")[0].contents[0].strip() == "top bit"
+	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
+	assert soup("article",id="a1")[0].contents[3].string.strip() == "section two"
+	assert soup("script")[2].string.strip() == """\
+declare("a1",{"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"});
+declare("s2",{"area-names": ["lower"], "encoding": "utf-8", "laidout": "area-member"});
+declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"});"""
+
+	assert soup("article",id="a1")[0]["class"] == "upper-area-inactive lower-area-inactive"
+	assert soup("section",id="s1")[0]["class"] == "in-upper-area in-upper-order-0"
+	assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
 	# assert False
 	#TODO document properties if stateful
 

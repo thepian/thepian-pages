@@ -4,6 +4,22 @@ from os.path import join, exists, abspath, splitext, split
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString
 from soupselect import select
 
+class AreaInfo(object):
+
+	def __init__(self,name):
+		self.name = name
+		self.active = "inactive"
+		self.idx = 0
+
+	def getAreaClasses(self):
+		return ["%s-area-%s" % (self.name,self.active)]
+
+	def getOrder(self,element):
+		if not hasattr(element,"%s_index" % self.name) or getattr(element,"%s_index" % self.name) is None:
+			setattr(element,"%s_index" % self.name,self.idx)
+			self.idx += 1
+		return getattr(element,"%s_index" % self.name)
+
 class PartFile(object):
 	""" Fetch Browser Specific Part
 	"""
@@ -42,6 +58,8 @@ class PartFile(object):
 					path = join(prefix, "%s.%s.html" % (just_name,tag))
 		return path
 
+auto_config_id = 1 #TODO make it top doc unique
+
 class PartDocument(object):
 
 	def __init__(self,specific,name,config):
@@ -52,6 +70,7 @@ class PartDocument(object):
 		self.rest = None
 		self.parent = None
 		self.statefulConfigs = {}
+		self.areas = {}
 
 		doc = PartFile(specific,name,"document")
 		
@@ -134,12 +153,63 @@ declare("%(id)s",%(json)s);
 				if config_id:
 					setattr(tag,'config_id',config_id)
 					self.statefulConfigs[config_id] = header
+					#TODO list descendant nodes with names.
 				#TODO parse with soup to support breaking out header/footer ?
 				#TODO script
 				
+	def forceConfigId(self,element):
+		if hasattr(element,'config_id'):
+			return getattr(element,'config_id')
+
+		auto_config_id += 1
+		return "es%s" % auto_config_id
+
+	def saveStageConfig(self,element,areaNames):
+		config_id = self.forceConfigId(element)
+		matter = self.statefulConfigs[config_id] = self.statefulConfigs[config_id] or {}
+		matter["area-names"] = areaNames
+		classNames = self.getAreaClasses(areaNames)
+		if "class" in element: classNames = element["class"].split(" ") + classNames
+		element["class"] = " ".join(classNames)
+		if "layouter" not in matter:
+			matter["layouter"] = "area-stage"
+
+	def saveMemberConfig(self,element,areaNames):
+		config_id = self.forceConfigId(element)
+		matter = self.statefulConfigs[config_id] = self.statefulConfigs[config_id] or {}
+		matter["area-names"] = areaNames
+		classNames = []
+		if "class" in element: classNames = element["class"].split(" ")
+		for an in areaNames: 
+			classNames.append("in-%s-area" % an)
+			classNames.append("in-%s-order-%s" % (an,self.getAreaOrder(element,an)))
+
+		element["class"] = " ".join(classNames)
+		if "laidout" not in matter:
+			matter["laidout"] = "area-member"
+
+	def saveTrackerDrivenConfig(self,element,props):
+		config_id = self.forceConfigId(element)
+		matter = self.statefulConfigs[config_id] = self.statefulConfigs[config_id] or {}
+		matter["tracker-driven"] = props
+
+	def getAreaOrder(self,element,areaName):
+		if areaName not in self.areas:
+			self.areas[areaName] = AreaInfo(areaName)
+		return self.areas[areaName].getOrder(element)
+
+
+	def getAreaClasses(self,areaNames):
+		classes = []
+		for areaName in areaNames:
+			if areaName not in self.areas:
+				self.areas[areaName] = AreaInfo(areaName)
+			classes += self.areas[areaName].getAreaClasses()
+		return classes
 
 
 	def expandSoup(self,content):
+		import re
 		soup = self.wrapDocumentSoup(content)
 
 		# expand the outline elements
@@ -154,6 +224,24 @@ declare("%(id)s",%(json)s);
 		self.expandTags(soup,"style")
 
 		self.expandTags(soup,"form", attrs=("src","id"))
+
+# def has_class_but_no_id(tag):
+#     return tag.has_key('class') and not tag.has_key('id')
+
+		stages = soup.findAll( attrs={"area-stage":re.compile(r".*")} )
+		for stage in stages:
+			self.saveStageConfig(stage,stage["area-stage"].split(" "))
+			del stage["area-stage"]
+
+		members = soup.findAll( attrs={"in-area":re.compile(r".*")} )
+		for member in members:
+			self.saveMemberConfig(member,member["in-area"].split(" "))
+			del member["in-area"]
+
+		tracked = soup.findAll( attrs={"tracker-driven":re.compile(r".*")} )
+		for t in tracked:
+			self.saveTrackerDrivenConfig(member,member["tracker-driven"].split(" "))
+			del member["tracker-driven"]
 
 		return soup
 
