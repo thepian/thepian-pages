@@ -58,9 +58,9 @@ class PartFile(object):
 					path = join(prefix, "%s.%s.html" % (just_name,tag))
 		return path
 
-auto_config_id = 1 #TODO make it top doc unique
-
 class PartDocument(object):
+
+	auto_config_id = 1 #TODO make it top doc unique
 
 	def __init__(self,specific,name,config):
 		self.specific = specific
@@ -157,16 +157,18 @@ declare("%(id)s",%(json)s);
 				#TODO parse with soup to support breaking out header/footer ?
 				#TODO script
 				
-	def forceConfigId(self,element):
-		if hasattr(element,'config_id'):
-			return getattr(element,'config_id')
-
-		auto_config_id += 1
-		return "es%s" % auto_config_id
+	def forceConfigId(self,element,forceAttribute=False):
+		if not hasattr(element,'config_id') or getattr(element,'config_id') is None:
+			self.auto_config_id += 1
+			setattr(element,'config_id',"es-%s" % self.auto_config_id)
+		if forceAttribute and ("id" not in element or element["id"] is None) and ("src" not in element or element["src"] is None):
+			element["id"] = getattr(element,'config_id')
+			
+		return getattr(element,'config_id')
 
 	def saveStageConfig(self,element,areaNames):
 		config_id = self.forceConfigId(element)
-		matter = self.statefulConfigs[config_id] = self.statefulConfigs[config_id] or {}
+		matter = self.statefulConfigs[config_id] = config_id in self.statefulConfigs and self.statefulConfigs[config_id] or {}
 		matter["area-names"] = areaNames
 		classNames = self.getAreaClasses(areaNames)
 		if "class" in element: classNames = element["class"].split(" ") + classNames
@@ -176,7 +178,7 @@ declare("%(id)s",%(json)s);
 
 	def saveMemberConfig(self,element,areaNames):
 		config_id = self.forceConfigId(element)
-		matter = self.statefulConfigs[config_id] = self.statefulConfigs[config_id] or {}
+		matter = self.statefulConfigs[config_id] = config_id in self.statefulConfigs and self.statefulConfigs[config_id] or {}
 		matter["area-names"] = areaNames
 		classNames = []
 		if "class" in element: classNames = element["class"].split(" ")
@@ -188,10 +190,19 @@ declare("%(id)s",%(json)s);
 		if "laidout" not in matter:
 			matter["laidout"] = "area-member"
 
-	def saveTrackerDrivenConfig(self,element,props):
-		config_id = self.forceConfigId(element)
-		matter = self.statefulConfigs[config_id] = self.statefulConfigs[config_id] or {}
+	def saveTrackerDrivenConfig(self,element,props,soup):
+		config_id = self.forceConfigId(element,forceAttribute=True)
+		matter = self.statefulConfigs[config_id] = config_id in self.statefulConfigs and self.statefulConfigs[config_id] or {}
 		matter["tracker-driven"] = props
+
+		tracker = Tag(soup,"div")
+		classNames = []
+		if "class" in element: classNames = element["class"].split(" ")
+		classNames += ["tracker", "%s-tracker" % element.tag]
+		tracker["class"] = " ".join(classNames)
+		# tracker.insertBefore(element)
+
+		matter["driven-by"] = "" #TODO tracker["id"]
 
 	def getAreaOrder(self,element,areaName):
 		if areaName not in self.areas:
@@ -240,8 +251,8 @@ declare("%(id)s",%(json)s);
 
 		tracked = soup.findAll( attrs={"tracker-driven":re.compile(r".*")} )
 		for t in tracked:
-			self.saveTrackerDrivenConfig(member,member["tracker-driven"].split(" "))
-			del member["tracker-driven"]
+			self.saveTrackerDrivenConfig(t,t["tracker-driven"].split(" "),soup)
+			del t["tracker-driven"]
 
 		return soup
 

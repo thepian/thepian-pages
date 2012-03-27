@@ -231,3 +231,29 @@ declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-mem
 	# assert False
 	#TODO document properties if stateful
 
+def test_populate_trackers():
+	from webpages.populate import populate, save_expander
+	
+	config = prep_site_config("w10",**{"browser": "desktop"})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","index.html"))
+
+	soup = get_soup(join(pages_test_root,"output","index.html"))
+
+	assert soup.find("article",id="a1").contents[0].strip() == "top bit"
+	assert soup.find("section",id="s1").string.strip() == "section one"
+	sectionTwo = soup.find("article",id="a1").contents[3]
+	s2id = sectionTwo["id"]
+	assert s2id is not None
+	assert soup("script")[2].string.strip() == """\
+declare("a1",{"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"});
+declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"});
+declare("%(s2id)s",{"driven-by": "", "tracker-driven": ["left", "top"]});""" % { "s2id": s2id }
+
+	assert soup("article",id="a1")[0]["class"] == "upper-area-inactive lower-area-inactive"
+	assert soup("section",id="s1")[0]["class"] == "in-upper-area in-upper-order-0"
+	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
+	# assert False
+	#TODO document properties if stateful
+
