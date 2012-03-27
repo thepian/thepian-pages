@@ -13,18 +13,25 @@ def get_soup(path):
 	    index_html = f.read()
 	return BeautifulSoup(index_html)
 
-def test_populate():
+def prep_site_config(rel_path,browser=None):
 	from webpages import apply_site_dirs
 	from webpages.config import SiteConfig
-	from webpages.populate import populate, save_expander
 	
 	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
 
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w1"))
+	apply_site_dirs("",force_project_path=join(pages_test_root,rel_path))
 
 	config = SiteConfig({
 		"dest": join(pages_test_root,"output"),
+		"browser": browser,		
 	})
+
+	return config
+
+def test_populate():
+	from webpages.populate import populate, save_expander
+	
+	config = prep_site_config("w1")
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","desktop","js","html5.js"))
@@ -40,19 +47,9 @@ def test_populate():
 #TODO test permlink, path overrides
 
 def test_populate_desktop_browser():
-
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
-
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w1"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-		"browser": "desktop",		
-	})
+	
+	config = prep_site_config("w1",**{"browser": "desktop"})
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","js","html5.js"))
@@ -62,17 +59,9 @@ def test_populate_desktop_browser():
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
 
 def test_populate_jquery():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
 	
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w2"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-	})
+	config = prep_site_config("w2")
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","desktop","js","jquery-1.5.1.js"))
@@ -84,18 +73,9 @@ def test_populate_jquery():
 	assert getsize(join(pages_test_root,"output","desktop","js","jquery.min.js")) == jqminsize
 
 def test_populate_http_fetch():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
 	
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w3"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-		"browser": "desktop",		
-	})
+	config = prep_site_config("w3",**{"browser": "desktop"})
 
 	import SimpleHTTPServer
 	import SocketServer
@@ -141,17 +121,9 @@ def test_populate_http_fetch():
 	#httpd_thread.stop()
 
 def test_populate_html_expansion():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
 	
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w4"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-	})
+	config = prep_site_config("w4")
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","desktop","about","index.html"))
@@ -160,33 +132,17 @@ def test_populate_html_expansion():
 	assert exists(join(pages_test_root,"output","desktop","with-ext.html"))
 
 def test_populate_scss():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
-
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w5"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-	})
+	
+	config = prep_site_config("w5")
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","desktop","css","test.css"))
 
 def test_populate_parts():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
-
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w6"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-	})
+	
+	config = prep_site_config("w6")
 
 	populate(save_expander,config)
 
@@ -207,17 +163,9 @@ def test_populate_parts():
 	assert "inline-src" not in soup("script",id="conf")[0]
 
 def test_populate_exclude_published():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
-
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w6"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-	})
+	
+	config = prep_site_config("w6")
 
 	populate(save_expander,config)
 
@@ -232,18 +180,9 @@ def test_populate_exclude_published():
 	#TODO file ext, paths
 
 def test_populate_assets():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
 	
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w7"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-		"browser": "desktop",		
-	})
+	config = prep_site_config("w7",**{"browser": "desktop"})
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","index.html"))
@@ -251,18 +190,9 @@ def test_populate_assets():
 	assert exists(join(pages_test_root,"output","public","css","test.css"))
 
 def test_populate_stateful():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
 	
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w8"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-		"browser": "desktop",		
-	})
+	config = prep_site_config("w8",**{"browser": "desktop"})
 
 	populate(save_expander,config)
 
@@ -278,18 +208,9 @@ declare("a2",{"encoding": "utf-8", "layouter": "deck"});"""
 	#TODO document properties if stateful
 
 def test_populate_areas():
-	from webpages import apply_site_dirs
-	from webpages.config import SiteConfig
 	from webpages.populate import populate, save_expander
 	
-	shutil.rmtree(join(pages_test_root,"output"), ignore_errors=True)
-
-	apply_site_dirs("",force_project_path=join(pages_test_root,"w9"))
-
-	config = SiteConfig({
-		"dest": join(pages_test_root,"output"),
-		"browser": "desktop",		
-	})
+	config = prep_site_config("w9",**{"browser": "desktop"})
 
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","index.html"))
