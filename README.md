@@ -7,3 +7,9 @@ The simple use case involves serving a directory of HTML, Markdown, images, CSS,
 Text files can have [[YAML Front Matter]] to change the default page serving rules.
 
 * document, the name of the parts page file to combine with the source file.
+
+### Version 0.3
+
+* Switched to Beautiful Soup 4
+* Supporting output to filesystem
+* JavaScript Libs with version awareness
