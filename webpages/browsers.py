@@ -3,6 +3,7 @@ import os, stat, site, codecs, logging
 from os.path import join, exists, abspath, splitext, split
 from bs4 import BeautifulSoup, Tag, NavigableString
 from soupselect import select
+import html5lib
 
 class AreaInfo(object):
 
@@ -21,6 +22,19 @@ class AreaInfo(object):
 			self.idx += 1
 			self.last = element
 		return getattr(element,"%s_index" % self.name)
+
+class HtmlContent(object):
+
+	def __init__(self,html):
+		self.soup = BeautifulSoup(html,"html5lib")
+
+	def inject(self,dest):
+		contents = self.soup.contents
+		if self.soup.body: contents = self.soup.body.contents
+
+		for c in reversed(contents):
+			dest.insert(0,c)
+
 
 class PartFile(object):
 	""" Fetch Browser Specific Part
@@ -94,21 +108,19 @@ class PartDocument(object):
 	def wrapDocumentSoup(self,content):
 		"""Wrap the chain of documents around content. Recursively calls itself to wrap parent chain."""
 		if not self.rest:
-			return BeautifulSoup(content)
+			return BeautifulSoup(content,"html5lib")
 
 		part_content = self.rest
 		if self.parent:
 			part_content = self.parent.wrapDocumentSoup(self.rest).prettify()
 
-		soup = BeautifulSoup(part_content)
+		soup = BeautifulSoup(part_content,"html5lib")
 
 		# insert body / content
 		content_tag = "content-tag" in self.header and self.header["content-tag"] or "body"
 		dest = soup.findAll(content_tag)[0]
 
-		nested = BeautifulSoup(content)
-		for c in reversed(nested.contents):
-			dest.insert(0,c)
+		HtmlContent(content).inject(dest)
 
 		return soup
 
@@ -150,9 +162,7 @@ declare("%(id)s",%(json)s);
 
 			if part and exists(part.path):
 				header,rest = self.config.split_matter_and_utf8_content(part.read(),{})
-				nested = BeautifulSoup(rest)
-				for c in reversed(nested.contents):
-					tag.insert(0,c)
+				HtmlContent(rest).inject(tag)
 				if config_id:
 					setattr(tag,'config_id',config_id)
 					self.statefulConfigs[config_id] = header

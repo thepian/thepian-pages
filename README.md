@@ -11,5 +11,6 @@ Text files can have [[YAML Front Matter]] to change the default page serving rul
 ### Version 0.3
 
 * Switched to Beautiful Soup 4
+* Switched to html5lib for parsing
 * Supporting output to filesystem
 * JavaScript Libs with version awareness

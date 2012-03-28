@@ -5,11 +5,11 @@ import shutil
 from os.path import dirname, join, exists, getsize
 pages_test_root = dirname(__file__)
 
-def get_soup(path):
+def get_soup(*path):
 	from bs4 import BeautifulSoup
-	assert exists(path)
+	assert exists(join(*path))
 	index_html = None
-	with open(path) as f:
+	with open(join(*path)) as f:
 	    index_html = f.read()
 	return BeautifulSoup(index_html)
 
@@ -49,7 +49,31 @@ def test_populate():
 	assert not exists(join(pages_test_root,"output","desktop","mymodule"))
 	assert not exists(join(pages_test_root,"output","pocket","mymodule"))
 	assert not exists(join(pages_test_root,"output","tablet","mymodule"))
+
+	soup = get_soup(pages_test_root,"output","desktop","partless","index.html")
+	assert soup.head == soup.find(id="h")
+	assert soup.body == soup.find(id="b")
+	assert soup.body.string.strip() == "body comes here"
 	
+	soup = get_soup(pages_test_root,"output","desktop","bodypart","index.html")
+	assert soup.html == soup.find(attrs={ "class": "no-js" })
+	assert soup.head == soup.find(id="h")
+	assert soup.body == soup.find(id="b")
+	assert soup.body.string.strip() == "in a body tag"
+
+	soup = get_soup(pages_test_root,"output","desktop","mixinbody","index.html")
+	assert soup.html == soup.find(attrs={ "class": "no-js" })
+	assert soup.head == soup.find(id="h")
+	assert soup.body == soup.find(id="b")
+	#TODO assert soup.find(attrs={ "src":"extra.js" })
+	
+	soup = get_soup(pages_test_root,"output","desktop","articlepart","index.html")
+	assert soup.html == soup.find(attrs={ "class": "no-js" })
+	assert soup.head == soup.find(id="h")
+	assert soup.body == soup.find(id="b")
+	assert soup.article == soup.find(id="a")
+	assert soup.article.h2.string.strip() == "Article"
+	assert soup.article.p.string.strip() == "here is the article"
 	
 #TODO try making all types of FileExpander
 #TODO test presence of path, urlpath, outpath
@@ -155,7 +179,7 @@ def test_populate_parts():
 
 	populate(save_expander,config)
 
-	soup = get_soup(join(pages_test_root,"output","desktop","index.html"))
+	soup = get_soup(pages_test_root,"output","desktop","index.html")
 
 	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
 	assert soup("article",id="a1")[0].contents[1].string.strip() == "section two"
@@ -205,7 +229,7 @@ def test_populate_stateful():
 
 	populate(save_expander,config)
 
-	soup = get_soup(join(pages_test_root,"output","index.html"))
+	soup = get_soup(pages_test_root,"output","index.html")
 
 	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
 	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
@@ -232,9 +256,9 @@ def test_populate_areas():
 	assert a1.contents[0].strip() == "top bit"
 	assert a1.contents[1].string.strip() == "section one"
 	assert a1.contents[3].string.strip() == "section two"
-	assert a1["class"] == [u"splash-area-inactive",u"upper-area-inactive",u"lower-area-inactive"]
-	assert soup.find("section",id="s1")["class"] == [u"in-splash-area",u"in-splash-order-0",u"in-upper-area",u"in-upper-order-0",u"in-upper-order-last"]
-	assert soup.find("section",id="s2")["class"] == [u"in-splash-area",u"in-splash-order-1",u"in-lower-area",u"in-lower-order-0",u"in-lower-order-last",u"in-splash-order-last"]
+	assert a1["class"] == u"splash-area-inactive upper-area-inactive lower-area-inactive"
+	assert soup.find("section",id="s1")["class"] == u"in-splash-area in-splash-order-0 in-upper-area in-upper-order-0 in-upper-order-last"
+	assert soup.find("section",id="s2")["class"] == u"in-splash-area in-splash-order-1 in-lower-area in-lower-order-0 in-lower-order-last in-splash-order-last"
 
 	assert config["a1"] == {"area-names": ["splash","upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
 	assert config["s2"] == {"area-names": ["splash","lower"], "encoding": "utf-8", "laidout": "area-member"}
@@ -257,7 +281,7 @@ def test_populate_trackers():
 	populate(save_expander,config)
 	assert exists(join(pages_test_root,"output","index.html"))
 
-	soup = get_soup(join(pages_test_root,"output","index.html"))
+	soup = get_soup(pages_test_root,"output","index.html")
 
 	assert soup.find("article",id="a1").contents[0].strip() == "top bit"
 	assert soup.find("section",id="s1").string.strip() == "section one"
@@ -272,7 +296,7 @@ declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-mem
 declare("%(s2id)s",{"driven-by": "%(s2trk)s", "tracker-driven": ["left", "top"]});""" % { "s2id": s2id, "s2trk":s2trk }
 
 	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
-	assert trackerTwo["class"] == [u"tracker",u"section-tracker"]
+	assert trackerTwo["class"] == u"tracker section-tracker"
 	# assert False
 	#TODO document properties if stateful
 
