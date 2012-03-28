@@ -232,13 +232,13 @@ def test_populate_areas():
 	assert a1.contents[0].strip() == "top bit"
 	assert a1.contents[1].string.strip() == "section one"
 	assert a1.contents[3].string.strip() == "section two"
-	assert a1["class"] == [u"upper-area-inactive",u"lower-area-inactive"]
-	assert soup.find("section",id="s1")["class"] == [u"in-upper-area",u"in-upper-order-0"]
-	assert soup.find("section",id="s2")["class"] == [u"in-lower-area",u"in-lower-order-0"]
+	assert a1["class"] == [u"splash-area-inactive",u"upper-area-inactive",u"lower-area-inactive"]
+	assert soup.find("section",id="s1")["class"] == [u"in-splash-area",u"in-splash-order-0",u"in-upper-area",u"in-upper-order-0",u"in-upper-order-last"]
+	assert soup.find("section",id="s2")["class"] == [u"in-splash-area",u"in-splash-order-1",u"in-lower-area",u"in-lower-order-0",u"in-lower-order-last",u"in-splash-order-last"]
 
-	assert config["a1"] == {"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
-	assert config["s2"] == {"area-names": ["lower"], "encoding": "utf-8", "laidout": "area-member"}
-	assert config["s1"] == {"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"}
+	assert config["a1"] == {"area-names": ["splash","upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
+	assert config["s2"] == {"area-names": ["splash","lower"], "encoding": "utf-8", "laidout": "area-member"}
+	assert config["s1"] == {"area-names": ["splash","upper"], "encoding": "utf-8", "laidout": "area-member"}
 
 	# The elements without parts, simply inline in HTML
 	assert soup.find(id="a2")
@@ -246,8 +246,6 @@ def test_populate_areas():
 	assert config["s4"] == {"area-names": ["second"], "laidout": "area-member"}
 	assert config["s3"] == {"area-names": ["first"], "laidout": "area-member"}
 	assert config["a2"] == {"area-names": ["first", "second"], "layouter": "area-stage"}
-
-
 	# assert False
 	#TODO document properties if stateful
 

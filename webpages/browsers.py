@@ -10,6 +10,7 @@ class AreaInfo(object):
 		self.name = name
 		self.active = "inactive"
 		self.idx = 0
+		self.last = None
 
 	def getAreaClasses(self):
 		return ["%s-area-%s" % (self.name,self.active)]
@@ -18,6 +19,7 @@ class AreaInfo(object):
 		if not hasattr(element,"%s_index" % self.name) or getattr(element,"%s_index" % self.name) is None:
 			setattr(element,"%s_index" % self.name,self.idx)
 			self.idx += 1
+			self.last = element
 		return getattr(element,"%s_index" % self.name)
 
 class PartFile(object):
@@ -215,6 +217,11 @@ declare("%(id)s",%(json)s);
 			self.areas[areaName] = AreaInfo(areaName)
 		return self.areas[areaName].getOrder(element)
 
+	def addClassToLastInOrder(self):
+		for an in self.areas:
+			area = self.areas[an]
+			if area.last:
+				area.last["class"] += u" in-%s-order-last" % an
 
 	def getAreaClasses(self,areaNames):
 		classes = []
@@ -254,6 +261,8 @@ declare("%(id)s",%(json)s);
 		for member in members:
 			self.saveMemberConfig(member,member["in-area"].split(" "))
 			del member["in-area"]
+
+		self.addClassToLastInOrder()
 
 		tracked = soup.findAll( attrs={"tracker-driven":re.compile(r".*")} )
 		for t in tracked:
