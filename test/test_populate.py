@@ -28,6 +28,15 @@ def prep_site_config(rel_path,browser=None):
 
 	return config
 
+def eval_config_script(script):
+	lines = script.strip().split("\n")
+	config = {}
+	def declare(key,val):
+		config[key] = val
+	for line in lines:
+		eval(line.strip(";"), { "declare": declare })
+	return config
+
 def test_populate():
 	from webpages.populate import populate, save_expander
 	
@@ -200,6 +209,7 @@ def test_populate_stateful():
 
 	assert soup("article",id="a1")[0].contents[0].strip() == "myarticle"
 	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
+	assert soup("script")[2]["type"] == "application/config"
 	assert soup("script")[2].string.strip() == """\
 declare("a1",{"encoding": "utf-8", "layouter": "deck", "stage": ["upper", "lower", "sides"]});
 declare("s1",{"encoding": "utf-8", "laidout": "card"});
@@ -210,24 +220,34 @@ declare("a2",{"encoding": "utf-8", "layouter": "deck"});"""
 def test_populate_areas():
 	from webpages.populate import populate, save_expander
 	
-	config = prep_site_config("w9",**{"browser": "desktop"})
-
-	populate(save_expander,config)
+	populate(save_expander,prep_site_config("w9",**{"browser": "desktop"}))
 	assert exists(join(pages_test_root,"output","index.html"))
 
 	soup = get_soup(join(pages_test_root,"output","index.html"))
+	a1 = soup.find(id="a1")
+	a2 = soup.find(id="a2")
+	config = eval_config_script(soup("script")[2].string)
 
-	assert soup("article",id="a1")[0].contents[0].strip() == "top bit"
-	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
-	assert soup("article",id="a1")[0].contents[3].string.strip() == "section two"
-	assert soup("script")[2].string.strip() == """\
-declare("a1",{"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"});
-declare("s2",{"area-names": ["lower"], "encoding": "utf-8", "laidout": "area-member"});
-declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"});"""
-
-	assert soup.article["class"] == [u"upper-area-inactive",u"lower-area-inactive"]
+	# The elements with parts content and matter
+	assert a1.contents[0].strip() == "top bit"
+	assert a1.contents[1].string.strip() == "section one"
+	assert a1.contents[3].string.strip() == "section two"
+	assert a1["class"] == [u"upper-area-inactive",u"lower-area-inactive"]
 	assert soup.find("section",id="s1")["class"] == [u"in-upper-area",u"in-upper-order-0"]
 	assert soup.find("section",id="s2")["class"] == [u"in-lower-area",u"in-lower-order-0"]
+
+	assert config["a1"] == {"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
+	assert config["s2"] == {"area-names": ["lower"], "encoding": "utf-8", "laidout": "area-member"}
+	assert config["s1"] == {"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"}
+
+	# The elements without parts, simply inline in HTML
+	assert soup.find(id="a2")
+
+	assert config["s4"] == {"area-names": ["second"], "laidout": "area-member"}
+	assert config["s3"] == {"area-names": ["first"], "laidout": "area-member"}
+	assert config["a2"] == {"area-names": ["first", "second"], "layouter": "area-stage"}
+
+
 	# assert False
 	#TODO document properties if stateful
 

@@ -160,8 +160,11 @@ declare("%(id)s",%(json)s);
 				
 	def forceConfigId(self,element,forceAttribute=False):
 		if not hasattr(element,'config_id') or getattr(element,'config_id') is None:
-			self.auto_config_id += 1
-			setattr(element,'config_id',"es-%s" % self.auto_config_id)
+			if element.get("id"):
+				setattr(element,'config_id',element["id"])
+			else:
+				self.auto_config_id += 1
+				setattr(element,'config_id',"es-%s" % self.auto_config_id)
 		if forceAttribute and ("id" not in element or element["id"] is None) and ("src" not in element or element["src"] is None):
 			element["id"] = getattr(element,'config_id')
 			
