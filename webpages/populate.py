@@ -31,7 +31,6 @@ class UnversionedExpander(object):
 
 		self.published = original.published
 		self.markup = original.markup
-		self.expandDocument = original.expandDocument
 		self.fetchContent = original.fetchContent
 
 		# print >>sys.stderr, self.outpath
@@ -68,12 +67,7 @@ class FileExpander(object):
 		stat_result = os.stat(path)
 		self.modified = datetime.datetime.fromtimestamp(stat_result[stat.ST_MTIME])
 
-		content = None
-		with open(path, "rb") as f:
-			content = f.read()
-
 		self.markup = None
-		self.expandDocument = False
 		self.fetchContent = False
 
 		self.domain = self.config["domain"]
@@ -219,8 +213,6 @@ class FileExpander(object):
 
 		self.outpath = self.urlpath
 		self.markup = "xml"
-		if "document" in self.header and self.header["document"]:
-			self.expandDocument = True
 
 	def _text_file(self,relpath):
 		header = {
@@ -247,8 +239,6 @@ class FileExpander(object):
 
 		self.outpath = self.urlpath
 		self.markup = "text"
-		if "document" in self.header:
-			self.expandDocument = True
 
 	def _html_file(self,relpath):
 		header = {
@@ -281,8 +271,6 @@ class FileExpander(object):
 
 		self.outpath = outpath or self.urlpath
 		self.markup = "html"
-		if "document" in self.header:
-			self.expandDocument = True
 
 	def _markdown_file(self,relpath):
 		header = {
@@ -317,8 +305,6 @@ class FileExpander(object):
 		self.outpath = outpath or self.urlpath
 
 		self.markup = "html"
-		if "document" in self.header:
-			self.expandDocument = True
 
 		import markdown2
 		extras = ["code-friendly","wiki-tables","cuddled-lists"]
