@@ -54,7 +54,6 @@ def test_populate():
 	assert soup.head == soup.find(id="h")
 	assert soup.body == soup.find(id="b")
 	assert soup.body.string.strip() == "body comes here"
-	assert soup.head.find(attrs={ "name":"author" })["content"] == "Henrik Vendelbo"
 	
 	soup = get_soup(pages_test_root,"output","desktop","bodypart","index.html")
 	assert soup.html == soup.find(attrs={ "class": "no-js desktop" })
@@ -97,6 +96,39 @@ def test_populate_desktop_browser():
 	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
 
 	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
+
+	soup = get_soup(pages_test_root,"output","bodypart","index.html")
+	assert soup.html == soup.find(attrs={ "class": "no-js desktop" })
+
+def test_populate_tablet_browser():
+	from webpages.populate import populate, save_expander
+	
+	config = prep_site_config("w1",**{"browser": "tablet"})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","js","html5.js"))
+	h5size = getsize(join(pages_test_root,"resources","html5-patch.js"))
+	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
+
+	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
+
+	soup = get_soup(pages_test_root,"output","bodypart","index.html")
+	assert soup.html == soup.find(attrs={ "class": "no-js tablet" })
+
+def test_populate_pocket_browser():
+	from webpages.populate import populate, save_expander
+	
+	config = prep_site_config("w1",**{"browser": "pocket"})
+
+	populate(save_expander,config)
+	assert exists(join(pages_test_root,"output","js","html5.js"))
+	h5size = getsize(join(pages_test_root,"resources","html5-patch.js"))
+	disclsize = getsize(join(pages_test_root,"resources","lead-disclaimer.js"))
+
+	assert getsize(join(pages_test_root,"output","js","html5.js")) == disclsize + h5size
+
+	soup = get_soup(pages_test_root,"output","bodypart","index.html")
+	assert soup.html == soup.find(attrs={ "class": "no-js pocket" })
 
 def test_populate_jquery():
 	from webpages.populate import populate, save_expander
@@ -173,6 +205,12 @@ def test_populate_html_expansion():
 	assert exists(join(pages_test_root,"output","desktop","301.html"))
 	assert exists(join(pages_test_root,"output","desktop","404.html"))
 	assert exists(join(pages_test_root,"output","desktop","with-ext.html"))
+
+	soup = get_soup(pages_test_root,"output","desktop","about","index.html")
+	assert soup.head.find("meta",attrs={ "name":"author" })["content"] == "Henrik Vendelbo"
+	assert soup.head.find("meta",attrs={ "name":"description" })["content"] == "Information about the Product"
+	assert soup.head.find("title").string.strip() == "About the Product"
+
 
 def _assert_content_re(path,pattern):
 	import re
