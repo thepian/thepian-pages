@@ -82,23 +82,15 @@ def cache_expander(expander,browser,config):
 			REDIS.delete(contentkey)
 		return
 
-	if expander.expandScss:
-		relpath = join(browser.browser_type,expander.path)
-		if exists(join(expander.base,relpath)):
-			header,content,fetch = expander._get_matter_and_content(relpath,expander.header)
-		else:
-			header,content = expander.header,expander.content
-		header = browser.expandHeader(header,config=expander.config)
-		content = browser.expandScss(header,content,config=expander.config)
-		update_lists(expander,header,{ "offline": [expander.urlpath] })
-	elif expander.expandDocument:
-		header = browser.expandHeader(expander.header,config=expander.config)
-		content, lists = browser.expandDocument(header,expander.content,config=expander.config)
-		update_lists(expander,header,lists)
-	else:
-		header = expander.header
-		content = expander.content
-		update_lists(expander,header,{ "offline": [expander.urlpath] })
+	header,content = expander.get_matter_and_content_for(browser.browser_type)
+	header,content, lists = browser.expand(header,content,markup=expander.markup,config=expander.config) 
+	try:
+		if "encoding" in header:
+			content = content.encode(header["encoding"])
+	except Exception,e:
+		print >>sys.stderr, "failed to encode", expander.path
+	
+	update_lists(expander,header,lists)
 
 	REDIS[contentkey] = content
 	REDIS.expire(contentkey,ONE_YEAR_IN_SECONDS)

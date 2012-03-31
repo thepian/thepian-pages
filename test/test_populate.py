@@ -54,6 +54,7 @@ def test_populate():
 	assert soup.head == soup.find(id="h")
 	assert soup.body == soup.find(id="b")
 	assert soup.body.string.strip() == "body comes here"
+	assert soup.head.find(attrs={ "name":"author" })["content"] == "Henrik Vendelbo"
 	
 	soup = get_soup(pages_test_root,"output","desktop","bodypart","index.html")
 	assert soup.html == soup.find(attrs={ "class": "no-js" })
@@ -75,6 +76,7 @@ def test_populate():
 	assert soup.article.h2.string.strip() == "Article"
 	assert soup.article.p.string.strip() == "here is the article"
 	
+#TODO expand parent document for XML
 #TODO try making all types of FileExpander
 #TODO test presence of path, urlpath, outpath
 #TODO test permlink, path overrides
@@ -146,9 +148,12 @@ def test_populate_http_fetch():
 	assert exists(join(pages_test_root,"output","js","html5-2.js"))
 	assert getsize(join(pages_test_root,"output","js","html5-2.js")) == h5size
 	assert exists(join(pages_test_root,"output","404","index.html"))
-	assert getsize(join(pages_test_root,"output","404","index.html")) == fofsize
+	soup404 = get_soup(pages_test_root,"output","404","index.html")
+	assert len(soup404.body.string.strip())+1 == fofsize
 
 	assert exists(join(pages_test_root,"output","js","test.js"))
+	assert getsize(join(pages_test_root,"output","js","test.js")) == 0
+	assert exists(join(pages_test_root,"output","js","test-fetched.js"))
 	assert getsize(join(pages_test_root,"output","js","test.js")) == 0
 
 	#httpd_thread.stop()

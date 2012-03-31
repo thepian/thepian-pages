@@ -18,6 +18,7 @@ class SiteConfig(object):
         "port": 4444,
         "browser": None,
         "assets-base": None,
+        "author": None,
     }
     
     def __init__(self,options):

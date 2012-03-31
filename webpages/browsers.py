@@ -301,6 +301,61 @@ class BrowserSpecific(object):
 	def __init__(self,browser_type):
 		self.browser_type = browser_type
 
+	def expand(self,header,content,markup=None,config=None):
+		"""
+		General header/content expansion replacing expandDocument and expandScss
+		"""
+		lists = {
+			"offline": [],
+		}
+
+		if "encoding" not in header and markup is not None:
+			header["encoding"] = "utf-8"
+		soup = None
+		if "document" in header:
+			part = self.partDocument(header["document"],config)
+			header = part.get_collapsed_header(header=header)
+			soup = part.expandSoup(content)
+		else:
+			soup = BeautifulSoup(content,"html5lib")
+
+		if markup is "scss":
+			content = self.expandScss(header,content,config=config)
+		elif markup in ("text","xml"):
+			pass #TODO consider what to do
+		elif markup is "html":
+			stateful_doc = "stateful" in header and header["stateful"] is True
+
+			if stateful_doc:
+				script = part.statefulConfigScript()
+				if script:
+					script_tag = soup.new_tag("script")
+					script_tag["type"] = "application/config"
+					script_tag.string = script
+					soup.body.append(script_tag)
+
+			# fill in meta tags
+			self._applyMetaAndTitle(soup,header,config)
+
+			if config["appcache"] == False:
+				for h in select(soup,"html"):
+					del h["manifest"]
+			elif "manifest" in header:
+				for h in select(soup,"html"):
+					h["manifest"] = header["manifest"]
+
+			if "Content-Language" in header:
+				for h in select(soup,"html"):
+					h["lang"] = header["Content-Language"]
+
+			# offline markers
+			lists["offline"] = self._getOfflineList(soup,header)
+			content = soup.prettify()
+
+		return header, content, lists
+
+
+	#TODO obsolete, test that all functionality is done by expand
 	def expandHeader(self,header,config=None):
 		if "encoding" not in header:
 			header["encoding"] = "utf-8"
@@ -310,6 +365,7 @@ class BrowserSpecific(object):
 
 		return header
 
+	#TODO obsolete, test that all functionality is done by expand
 	def expandDocument(self,header,content,config=None):
 		part = self.partDocument(header["document"],config)
 		soup = part.expandSoup(content)
@@ -325,17 +381,7 @@ class BrowserSpecific(object):
 				soup.body.append(script_tag)
 
 		# fill in meta tags
-		if "description" in header:
-			for desc in select(soup,"meta[name=description]"):
-				desc["content"] = header["description"]
-		if "author" in header:
-			for desc in select(soup,"meta[name=author]"):
-				desc["content"] = header["author"]
-		if "title" in header:
-			#TODO site.title-template "{{ page.title }} - My App"
-			for t in select(soup,"title"):
-				t.string = header["title"]
-		#TODO elif site.title
+		self._applyMetaAndTitle(soup,header,config)
 
 		if config["appcache"] == False:
 			for h in select(soup,"html"):
@@ -349,10 +395,42 @@ class BrowserSpecific(object):
 				h["lang"] = header["Content-Language"]
 
 		# offline markers
-		offline = []
 		lists = {
-			"offline": offline,
+			"offline": self._getOfflineList(soup,header),
 		}
+
+		return soup.prettify(), lists
+
+	#TODO obsolete, test that all functionality is done by expand
+	def expandScss(self,header,content,config=None):
+		from scss import Scss
+		#TODO offline images
+		css = Scss()
+		#TODO scss unicode call
+		return unicode(css.compile(content))
+
+
+	def partDocument(self,name,config):
+		#TODO cache to avoid reloading (reload on change date)
+		return PartDocument(self,name,config)
+
+	def _applyMetaAndTitle(self,soup,header,config):
+		description = "description" in header and header["description"] or None
+		if description:
+			for desc in soup.find_all("meta",attrs={ "name": "description" }):
+				desc["content"] = description
+		author = "author" in header and header["author"] or config["author"]
+		if author:
+			for desc in soup.find_all("meta",attrs={ "name": "author" }):
+				desc["content"] = author
+		if "title" in header:
+			#TODO site.title-template "{{ page.title }} - My App"
+			for t in select(soup,"title"):
+				t.string = header["title"]
+		#TODO elif site.title
+
+	def _getOfflineList(self,soup,header):
+		offline = []
 		if "appcache" in header:
 			images = select(soup,"img[src]")
 			for img in images:
@@ -369,51 +447,7 @@ class BrowserSpecific(object):
 				#TODO resolve with doc path
 				offline.append(s["src"])
 				del s["offline"]
-
-		return soup.prettify(), lists
-
-	def expandScss(self,header,content,config=None):
-		from scss import Scss
-		#TODO offline images
-		css = Scss()
-		#TODO scss unicode call
-		return unicode(css.compile(content))
-
-
-	def partDocument(self,name,config):
-		return PartDocument(self,name,config)
-
-	def _fetch(self, ref, config=None, basedir=None):
-		if ref[:5] == "http:":
-			from urllib2 import urlopen
-			response = urlopen(ref)
-			raw = response.read()
-			encoding = "utf-8"
-			if "content-type" in response.headers:
-				charset = response.headers['content-type'].split('charset=')
-				if len(charset) > 1:
-					encoding = charset[-1]
-			content = unicode(raw, encoding)
-			return content
-		else:
-			logging.info("Fetching %s from %s" % (ref,basedir))
-			fetch_abs = abspath(join(basedir,ref))
-			content = None
-			with open(fetch_abs,"rb") as f:
-				content = f.read()
-			defaultheader = {}
-			#TODO recursive fetch
-			header,content = config.split_matter_and_utf8_content(content,defaultheader)
-			return content
-
-	def fetchContent(self,header,config=None,basedir=None):
-		#TODO joining strategies for different content, binary files - no shims
-		fetch = "fetch" in header and header["fetch"] or header["content"]
-		if type(fetch) == list:
-			return u"".join([self._fetch(entry,config=config,basedir=basedir) for entry in fetch])
-		else:
-			return self._fetch(fetch,config=config,basedir=basedir)
-
+		return offline
 
 
 

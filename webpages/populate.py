@@ -30,7 +30,7 @@ class UnversionedExpander(object):
 		self.outpath = original.outpath.replace("-%s" % version,"")
 
 		self.published = original.published
-		self.expandScss = original.expandScss
+		self.markup = original.markup
 		self.expandDocument = original.expandDocument
 		self.fetchContent = original.fetchContent
 
@@ -43,6 +43,9 @@ class UnversionedExpander(object):
 		np = original.name_parts
 		return [np[0], None, np[2]]
 	name_parts = property(get_name_parts)
+
+	def get_matter_and_content_for(self,browser_type):
+		return self.original.get_matter_and_content_for(browser_type)
 
 
 class FileExpander(object):
@@ -69,7 +72,7 @@ class FileExpander(object):
 		with open(path, "rb") as f:
 			content = f.read()
 
-		self.expandScss = False
+		self.markup = None
 		self.expandDocument = False
 		self.fetchContent = False
 
@@ -103,6 +106,51 @@ class FileExpander(object):
 
 	def unversioned_copy(self):
 		return UnversionedExpander(self)
+
+	def get_matter_and_content_for(self,browser_type):
+		relpath = join(browser_type,self.path)
+		if self.fetchContent:
+			header = self.header
+			content = self._fetch_content(header)
+		elif exists(join(self.base,relpath)) and self.markup == "scss":
+			header,content,fetchContent = self._get_matter_and_content(relpath,self.header)
+			content = self._fetch_content(header)
+		else:
+			header,content = self.header,self.content
+
+		return header,content
+
+	def _fetch_content(self,header):
+		#TODO joining strategies for different content, binary files - no shims
+		fetch = "fetch" in header and header["fetch"] or header["content"]
+		if type(fetch) == list:
+			return u"".join([self._fetch_part(entry) for entry in fetch])
+		else:
+			return self._fetch_part(fetch)
+
+	def _fetch_part(self, ref, basedir=None):
+		basedir = dirname(join(self.base,self.path))
+		if ref[:5] == "http:":
+			from urllib2 import urlopen
+			response = urlopen(ref)
+			raw = response.read()
+			encoding = "utf-8"
+			if "content-type" in response.headers:
+				charset = response.headers['content-type'].split('charset=')
+				if len(charset) > 1:
+					encoding = charset[-1]
+			content = unicode(raw, encoding)
+			return content
+		else:
+			logging.info("Fetching %s from %s" % (ref,basedir))
+			fetch_abs = abspath(join(basedir,ref))
+			content = None
+			with open(fetch_abs,"rb") as f:
+				content = f.read()
+			defaultheader = {}
+			#TODO recursive fetch
+			header,content = self.config.split_matter_and_utf8_content(content,defaultheader)
+			return content
 
 	def _get_published(self):
 		if "published" in self.header:
@@ -143,7 +191,7 @@ class FileExpander(object):
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
 		self.outpath = self.urlpath
-		self.expandScss = True
+		self.markup = "scss"
 
 	def _xml_file(self,relpath):
 		header = {
@@ -169,6 +217,7 @@ class FileExpander(object):
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
 		self.outpath = self.urlpath
+		self.markup = "xml"
 		if "document" in self.header and self.header["document"]:
 			self.expandDocument = True
 
@@ -196,6 +245,7 @@ class FileExpander(object):
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
 		self.outpath = self.urlpath
+		self.markup = "text"
 		if "document" in self.header:
 			self.expandDocument = True
 
@@ -229,6 +279,7 @@ class FileExpander(object):
 			self.urlpath = "/%s%s" % (self.prefix,self.urlpath)
 
 		self.outpath = outpath or self.urlpath
+		self.markup = "html"
 		if "document" in self.header:
 			self.expandDocument = True
 
@@ -264,6 +315,7 @@ class FileExpander(object):
 
 		self.outpath = outpath or self.urlpath
 
+		self.markup = "html"
 		if "document" in self.header:
 			self.expandDocument = True
 
@@ -409,37 +461,14 @@ def save_expander(expander,browser,config):
 	if not exists(dir_path):
 		os.makedirs(dir_path)
 
-	if expander.expandScss:
-		relpath = join(browser.browser_type,expander.path)
-		if exists(join(expander.base,relpath)):
-			header,content,fetchContent = expander._get_matter_and_content(relpath,expander.header)
-		else:
-			header,content = expander.header,expander.content
-		header = browser.expandHeader(header,config=expander.config)
-		content = browser.expandScss(header,content,config=expander.config)
-		#expander.update_lists(header,{ "offline": [expander.urlpath] })
+	header,content = expander.get_matter_and_content_for(browser.browser_type)
+	header,content, lists = browser.expand(header,content,markup=expander.markup,config=expander.config) 
+	try:
 		if "encoding" in header:
 			content = content.encode(header["encoding"])
-	elif expander.expandDocument:
-		header = browser.expandHeader(expander.header,config=expander.config)
-		content, lists = browser.expandDocument(header,expander.content,config=expander.config)
-		#expander.update_lists(header,lists)
-		if "encoding" in header:
-			content = content.encode(header["encoding"])
-	elif expander.fetchContent:
-		header = expander.header
-		content = browser.fetchContent(header,config=expander.config,basedir=dirname(join(expander.base,expander.path)))
-		if "encoding" in header:
-			content = content.encode(header["encoding"])
-	else:
-		header = expander.header
-		content = expander.content
-		try:
-			if "encoding" in header:
-				content = content.encode(header["encoding"])
-		except Exception,e:
-			print >>sys.stderr, "failed to encode", expander.path
-		#expander.update_lists(header,{ "offline": [expander.urlpath] })
+	except Exception,e:
+		print >>sys.stderr, "failed to encode", expander.path
+	#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
 	encoding = "encoding" in header and header["encoding"] or None
 	print encoding, type(content), file_path.replace(base_path,"")
