@@ -58,7 +58,7 @@ abc---def
 	#print >>sys.stderr, "from:", content2, "to:", expected, "end"
 	assert content2 == expected
 
-def test_fetch_content():
+def notest_fetch_content():
 
 	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
 	config = SiteConfig({})
