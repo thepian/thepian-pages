@@ -114,7 +114,8 @@ class FileExpander(object):
 			content = self._fetch_content(header)
 		elif exists(join(self.base,relpath)) and self.markup == "scss":
 			header,content,fetchContent = self._get_matter_and_content(relpath,self.header)
-			content = self._fetch_content(header)
+			if fetchContent:
+				content = self._fetch_content(header)
 		else:
 			header,content = self.header,self.content
 

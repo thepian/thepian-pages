@@ -9,9 +9,9 @@ def get_soup(*path):
 	from bs4 import BeautifulSoup
 	assert exists(join(*path))
 	index_html = None
-	with open(join(*path)) as f:
-	    index_html = f.read()
-	return BeautifulSoup(index_html)
+	with open(join(*path),"rb") as f:
+	    index_html = f.read().decode("utf-8")
+	return BeautifulSoup(index_html,"html5lib")
 
 def prep_site_config(rel_path,browser=None):
 	from webpages import apply_site_dirs
@@ -57,19 +57,24 @@ def test_populate():
 	assert soup.head.find(attrs={ "name":"author" })["content"] == "Henrik Vendelbo"
 	
 	soup = get_soup(pages_test_root,"output","desktop","bodypart","index.html")
-	assert soup.html == soup.find(attrs={ "class": "no-js" })
+	assert soup.html == soup.find(attrs={ "class": "no-js desktop" })
+	assert soup.html["class"].split() == [u"no-js",u"desktop"]
 	assert soup.head == soup.find(id="h")
 	assert soup.body == soup.find(id="b")
 	assert soup.body.string.strip() == "in a body tag"
+	soup_tablet = get_soup(pages_test_root,"output","tablet","bodypart","index.html")
+	assert soup_tablet.html["class"].split() == [u"no-js",u"tablet"]
+	soup_pocket = get_soup(pages_test_root,"output","pocket","bodypart","index.html")
+	assert soup_pocket.html["class"].split() == [u"no-js",u"pocket"]
 
 	soup = get_soup(pages_test_root,"output","desktop","mixinbody","index.html")
-	assert soup.html == soup.find(attrs={ "class": "no-js" })
+	assert soup.html == soup.find(attrs={ "class": "no-js desktop" })
 	assert soup.head == soup.find(id="h")
 	assert soup.body == soup.find(id="b")
 	#TODO assert soup.find(attrs={ "src":"extra.js" })
 	
 	soup = get_soup(pages_test_root,"output","desktop","articlepart","index.html")
-	assert soup.html == soup.find(attrs={ "class": "no-js" })
+	assert soup.html == soup.find(attrs={ "class": "no-js desktop" })
 	assert soup.head == soup.find(id="h")
 	assert soup.body == soup.find(id="b")
 	assert soup.article == soup.find(id="a")
@@ -169,13 +174,27 @@ def test_populate_html_expansion():
 	assert exists(join(pages_test_root,"output","desktop","404.html"))
 	assert exists(join(pages_test_root,"output","desktop","with-ext.html"))
 
+def _assert_content_re(path,pattern):
+	import re
+	assert exists(path)
+	with open(path,"r") as f:
+		c = f.read()
+		# print "content:", c, path, pattern
+		assert re.search(pattern,c)
+
 def test_populate_scss():
 	from webpages.populate import populate, save_expander
 	
 	config = prep_site_config("w5")
 
 	populate(save_expander,config)
-	assert exists(join(pages_test_root,"output","desktop","css","test.css"))
+	_assert_content_re(join(pages_test_root,"output","desktop","css","test.css"),r"\.test\{")
+	_assert_content_re(join(pages_test_root,"output","tablet","css","test.css"),r"\.test\{")
+	_assert_content_re(join(pages_test_root,"output","pocket","css","test.css"),r"\.test2\{")
+
+	_assert_content_re(join(pages_test_root,"output","desktop","css","desktop.css"),r"\.desktop2\{")
+	_assert_content_re(join(pages_test_root,"output","tablet","css","desktop.css"),r"\.desktop\{")
+	_assert_content_re(join(pages_test_root,"output","pocket","css","desktop.css"),r"\.desktop\{")
 
 def test_populate_parts():
 	from webpages.populate import populate, save_expander
@@ -261,9 +280,9 @@ def test_populate_areas():
 	assert a1.contents[0].strip() == "top bit"
 	assert a1.contents[1].string.strip() == "section one"
 	assert a1.contents[3].string.strip() == "section two"
-	assert a1["class"] == [u"splash-area-inactive", u"upper-area-inactive", u"lower-area-inactive"]
-	assert soup.find("section",id="s1")["class"] == [u"in-splash-area", u"in-splash-order-0", u"in-upper-area", u"in-upper-order-0", u"in-upper-order-last"]
-	assert soup.find("section",id="s2")["class"] == [u"in-splash-area", u"in-splash-order-1", u"in-lower-area", u"in-lower-order-0", u"in-lower-order-last", u"in-splash-order-last"]
+	assert a1["class"].split() == [u"splash-area-inactive", u"upper-area-inactive", u"lower-area-inactive"]
+	assert soup.find("section",id="s1")["class"].split() == [u"in-splash-area", u"in-splash-order-0", u"in-upper-area", u"in-upper-order-0", u"in-upper-order-last"]
+	assert soup.find("section",id="s2")["class"].split() == [u"in-splash-area", u"in-splash-order-1", u"in-lower-area", u"in-lower-order-0", u"in-lower-order-last", u"in-splash-order-last"]
 
 	assert config["a1"] == {"area-names": ["splash","upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
 	assert config["s2"] == {"area-names": ["splash","lower"], "encoding": "utf-8", "laidout": "area-member"}
@@ -301,7 +320,7 @@ declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-mem
 declare("%(s2id)s",{"driven-by": "%(s2trk)s", "tracker-driven": ["left", "top"]});""" % { "s2id": s2id, "s2trk":s2trk }
 
 	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
-	assert trackerTwo["class"] == [u"tracker", u"section-tracker"]
+	assert trackerTwo["class"].split() == [u"tracker", u"section-tracker"]
 	# assert False
 	#TODO document properties if stateful
 
