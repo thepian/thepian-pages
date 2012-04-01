@@ -84,6 +84,7 @@ def test_populate():
 #TODO try making all types of FileExpander
 #TODO test presence of path, urlpath, outpath
 #TODO test permlink, path overrides
+#TODO test that common file types work
 
 def test_populate_desktop_browser():
 	from webpages.populate import populate, save_expander
@@ -210,6 +211,11 @@ def test_populate_html_expansion():
 	assert soup.head.find("meta",attrs={ "name":"author" })["content"] == "Henrik Vendelbo"
 	assert soup.head.find("meta",attrs={ "name":"description" })["content"] == "Information about the Product"
 	assert soup.head.find("title").string.strip() == "About the Product"
+	# assert soup.head.find("meta",attrs={ "name":"charset" })["content"] == "utf-8"
+
+	soup = get_soup(pages_test_root,"output","desktop","iso-encoded","index.html")
+	# assert soup.head.find("meta",attrs={ "name":"charset" })["content"] == "iso-8859-1"
+
 
 
 def _assert_content_re(path,pattern):
@@ -297,9 +303,9 @@ def test_populate_stateful():
 	assert soup("article",id="a1")[0].contents[1].string.strip() == "section one"
 	assert soup("script")[2]["type"] == "application/config"
 	assert soup("script")[2].string.strip() == """\
-declare("a1",{"encoding": "utf-8", "layouter": "deck", "stage": ["upper", "lower", "sides"]});
-declare("s1",{"encoding": "utf-8", "laidout": "card"});
-declare("a2",{"encoding": "utf-8", "layouter": "deck"});"""
+declare("a1",{"charset": "utf-8", "layouter": "deck", "stage": ["upper", "lower", "sides"]});
+declare("s1",{"charset": "utf-8", "laidout": "card"});
+declare("a2",{"charset": "utf-8", "layouter": "deck"});"""
 	# assert False
 	#TODO document properties if stateful
 
@@ -322,9 +328,9 @@ def test_populate_areas():
 	assert soup.find("section",id="s1")["class"].split() == [u"in-splash-area", u"in-splash-order-0", u"in-upper-area", u"in-upper-order-0", u"in-upper-order-last"]
 	assert soup.find("section",id="s2")["class"].split() == [u"in-splash-area", u"in-splash-order-1", u"in-lower-area", u"in-lower-order-0", u"in-lower-order-last", u"in-splash-order-last"]
 
-	assert config["a1"] == {"area-names": ["splash","upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
-	assert config["s2"] == {"area-names": ["splash","lower"], "encoding": "utf-8", "laidout": "area-member"}
-	assert config["s1"] == {"area-names": ["splash","upper"], "encoding": "utf-8", "laidout": "area-member"}
+	assert config["a1"] == {"area-names": ["splash","upper", "lower"], "charset": "utf-8", "layouter": "area-stage"}
+	assert config["s2"] == {"area-names": ["splash","lower"], "charset": "utf-8", "laidout": "area-member"}
+	assert config["s1"] == {"area-names": ["splash","upper"], "charset": "utf-8", "laidout": "area-member"}
 
 	# The elements without parts, simply inline in HTML
 	assert soup.find(id="a2")
@@ -353,8 +359,8 @@ def test_populate_trackers():
 	s2trk = trackerTwo["id"]
 	assert s2id is not None
 	assert soup("script")[2].string.strip() == """\
-declare("a1",{"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"});
-declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"});
+declare("a1",{"area-names": ["upper", "lower"], "charset": "utf-8", "layouter": "area-stage"});
+declare("s1",{"area-names": ["upper"], "charset": "utf-8", "laidout": "area-member"});
 declare("%(s2id)s",{"driven-by": "%(s2trk)s", "tracker-driven": ["left", "top"]});""" % { "s2id": s2id, "s2trk":s2trk }
 
 	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"

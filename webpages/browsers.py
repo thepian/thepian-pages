@@ -301,6 +301,9 @@ class BrowserSpecific(object):
 	def __init__(self,browser_type):
 		self.browser_type = browser_type
 
+	def __repr__(self):
+		return "[%s specifics]" % self.browser_type
+
 	def expand(self,header,content,markup=None,config=None):
 		"""
 		General header/content expansion replacing expandDocument and expandScss
@@ -309,25 +312,29 @@ class BrowserSpecific(object):
 			"offline": [],
 		}
 
-		if "encoding" not in header and markup is not None:
-			header["encoding"] = "utf-8"
-		soup = None
+		if "charset" not in header and markup is not None:
+			header["charset"] = config["charset"]
+		parent_doc = None
 		if "document" in header:
-			part = self.partDocument(header["document"],config)
-			header = part.get_collapsed_header(header=header)
-			soup = part.expandSoup(content)
-		else:
-			soup = BeautifulSoup(content,"html5lib")
+			parent_doc = self.partDocument(header["document"],config)
+			header = parent_doc.get_collapsed_header(header=header)
 
 		if markup is "scss":
 			content = self.expandScss(header,content,config=config)
 		elif markup in ("text","xml"):
 			pass #TODO consider what to do
 		elif markup is "html":
+			soup = None
+			if parent_doc:
+				soup = parent_doc.expandSoup(content)
+			else:
+				soup = BeautifulSoup(content,"html5lib")
+
+			# print soup.head
 			stateful_doc = "stateful" in header and header["stateful"] is True
 
 			if stateful_doc:
-				script = part.statefulConfigScript()
+				script = parent_doc.statefulConfigScript()
 				if script:
 					script_tag = soup.new_tag("script")
 					script_tag["type"] = "application/config"
@@ -350,13 +357,14 @@ class BrowserSpecific(object):
 
 			# offline markers
 			lists["offline"] = self._getOfflineList(soup,header)
-			content = soup.prettify()
+			content = soup.encode()
 
 		return header, content, lists
 
 
 	#TODO obsolete, test that all functionality is done by expand
 	def expandHeader(self,header,config=None):
+		raise "obsolete"
 		if "encoding" not in header:
 			header["encoding"] = "utf-8"
 		if "document" in header:
@@ -367,6 +375,7 @@ class BrowserSpecific(object):
 
 	#TODO obsolete, test that all functionality is done by expand
 	def expandDocument(self,header,content,config=None):
+		raise "obsolete"
 		part = self.partDocument(header["document"],config)
 		soup = part.expandSoup(content)
 		header = part.get_collapsed_header(header=header)
@@ -415,14 +424,20 @@ class BrowserSpecific(object):
 		return PartDocument(self,name,config)
 
 	def _applyMetaAndTitle(self,soup,header,config):
+		charset = "charset" in header and header["charset"] or config["charset"]
+		for charset in soup.find_all("meta",attrs={ "name": "charset"}):
+			charset["content"] = charset
+
 		description = "description" in header and header["description"] or None
 		if description:
 			for desc in soup.find_all("meta",attrs={ "name": "description" }):
 				desc["content"] = description
+
 		author = "author" in header and header["author"] or config["author"]
 		if author:
 			for desc in soup.find_all("meta",attrs={ "name": "author" }):
 				desc["content"] = author
+
 		if "title" in header:
 			#TODO site.title-template "{{ page.title }} - My App"
 			for t in select(soup,"title"):

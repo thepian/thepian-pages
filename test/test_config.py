@@ -132,3 +132,40 @@ def test_populate_options():
 	options, r = populate_options_parser.parse_args(args=["--dest=./abc"])
 	config = SiteConfig(options)
 
+def test_split():
+
+	apply_site_dirs("",force_project_path=join(pages_test_root,"web"))
+	config = SiteConfig({})
+
+	file_contents = """\
+function f() {}
+"""
+	matter,content = config.split_matter_and_utf8_content(file_contents,{ "Content-Type": "text/javascript" })
+	assert matter["charset"] == "utf-8"
+
+	file_contents = """\
+---
+---
+.test {}
+"""
+	matter,content = config.split_matter_and_utf8_content(file_contents,{ "Content-Type": "text/css" })
+	assert matter["charset"] == "utf-8"
+
+	file_contents = """\
+---
+charset: iso8859-1
+---
+.test {}
+"""
+	matter,content = config.split_matter_and_utf8_content(file_contents,{ "Content-Type": "text/css" })
+	assert matter["charset"] == "iso8859-1"
+
+	file_contents = """\
+---
+---
+"""
+	matter,content = config.split_matter_and_utf8_content(file_contents,{ "Content-Type": "image/gif", "charset":False })
+	assert "charset" not in matter
+
+
+	# TODO test setting content-type in matter

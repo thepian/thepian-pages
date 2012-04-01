@@ -18,6 +18,7 @@ class SiteConfig(object):
         "port": 4444,
         "browser": None,
         "assets-base": None,
+        "charset": "utf-8", # Default charset for HTML, XML, text
         "author": None,
     }
     
@@ -129,25 +130,36 @@ class SiteConfig(object):
 
         if content[:3] == "---":
             parts = content.split("---")
-            matter = yaml.load(unicode(parts[1],"utf-8")) or {}
+            matter = yaml.load(unicode(parts[1],"utf-8")) or {} # Working assumption is that front matter is always utf-8
             if type(matter) == unicode:
                 matter = { "parse-error": "Front matter not proper YAML dictionary"}
                 import logging
                 logging.info("Front matter not proper YAML dictionary: %s" % matter)
             
             for key in header.keys():
-                matter[key] = header[key]
-            encoding = 'utf-8'
-            if 'encoding' in matter:
-                encoding = matter['encoding']
+                if key not in matter:
+                    matter[key] = header[key]
+            charset = self["charset"]
+            if 'charset' in matter:
+                # charset:False inhibits charset header
+                if matter['charset'] is False:
+                    del matter['charset']
+                else: 
+                    charset = matter['charset']
             else:
-                matter['encoding'] = encoding
+                matter['charset'] = charset
             rest = "---".join(parts[2:])
             #print "parts", parts
-            return matter, self.expand_site_variables(unicode(rest,encoding))
+            return matter, self.expand_site_variables(unicode(rest,charset))
 
-        #print "parts(1)", content
-        return header, self.expand_site_variables(unicode(content,"utf-8"))
+        matter = {
+            "charset": self["charset"]
+        }
+        for key in header.keys():
+            matter[key] = header[key]
+        if matter["charset"] is False:
+            del matter["charset"]
+        return matter, self.expand_site_variables(unicode(content,self["charset"]))
         
     def describe_area_matter(self,name):
         matter = {}

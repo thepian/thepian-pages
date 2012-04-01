@@ -129,12 +129,12 @@ class FileExpander(object):
 			from urllib2 import urlopen
 			response = urlopen(ref)
 			raw = response.read()
-			encoding = "utf-8"
+			charset = self.config["charset"] #TODO support matter in http source/http headers
 			if "content-type" in response.headers:
-				charset = response.headers['content-type'].split('charset=')
-				if len(charset) > 1:
-					encoding = charset[-1]
-			content = unicode(raw, encoding)
+				type_and_charset = response.headers['content-type'].split('charset=')
+				if len(type_and_charset) > 1:
+					charset = type_and_charset[-1]
+			content = unicode(raw, charset)
 			return content
 		else:
 			logging.info("Fetching %s from %s" % (ref,basedir))
@@ -169,7 +169,6 @@ class FileExpander(object):
 	def _scss_file(self,relpath):
 		header = {
 			"Content-Type": "text/css",
-			"encoding": "utf-8",
 		}
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
@@ -191,7 +190,6 @@ class FileExpander(object):
 	def _xml_file(self,relpath):
 		header = {
 			"Content-Type": "text/xml",
-			"encoding": "utf-8",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
@@ -217,7 +215,6 @@ class FileExpander(object):
 	def _text_file(self,relpath):
 		header = {
 			"Content-Type": "text/plain",
-			"encoding": "utf-8",
 		}
 		if self.name == "index":
 			self.urlpath = "/" + split(self.path)[0]
@@ -243,7 +240,6 @@ class FileExpander(object):
 	def _html_file(self,relpath):
 		header = {
 			"Content-Type": "text/html",
-			"encoding": "utf-8",
 		}
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
 		   
@@ -275,7 +271,6 @@ class FileExpander(object):
 	def _markdown_file(self,relpath):
 		header = {
 			"Content-Type": "text/html",
-			"encoding": "utf-8",
 		}
 		self.header,rest,self.fetchContent = self._get_matter_and_content(relpath,header)
 		#TODO content/fetch ?
@@ -316,7 +311,6 @@ class FileExpander(object):
 		header = {
 			"Content-Type": "application/javascript",
 			"templated": False,
-			"encoding": "utf-8",
 		}
 
 		self.header,self.content,self.fetchContent = self._get_matter_and_content(relpath,header)
@@ -327,7 +321,7 @@ class FileExpander(object):
 
 	def _default_file(self,relpath):
 		header = {
-			"Content-Type": "text/plain",
+			"Content-Type": "text/plain", "charset": False,
 		}
 		mime_type,encoding = mimetypes.guess_type(self.path)
 		if mime_type:
@@ -343,7 +337,6 @@ class FileExpander(object):
 	def _appcache_file(self,relpath):
 		header = {
 			"Content-Type": "text/cache-manifest",
-			"encoding": "utf-8",
 		}
 		mime_type,encoding = mimetypes.guess_type(self.path)
 		if mime_type:
@@ -451,14 +444,14 @@ def save_expander(expander,browser,config):
 	header,content = expander.get_matter_and_content_for(browser.browser_type)
 	header,content, lists = browser.expand(header,content,markup=expander.markup,config=expander.config) 
 	try:
-		if "encoding" in header:
-			content = content.encode(header["encoding"])
+		if "charset" in header:
+			content = content.encode(header["charset"])
 	except Exception,e:
 		print >>sys.stderr, "failed to encode", expander.path
 	#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
-	encoding = "encoding" in header and header["encoding"] or None
-	print encoding, type(content), file_path.replace(base_path,"")
+	charset = "charset" in header and header["charset"] or None
+	print charset, type(content), file_path.replace(base_path,"")
 	with open(file_path,"wb") as f:
 		f.write(content)
 
