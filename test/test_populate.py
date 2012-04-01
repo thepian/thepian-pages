@@ -347,15 +347,27 @@ def test_populate_trackers():
 
 	assert soup.find("article",id="a1").contents[0].strip() == "top bit"
 	assert soup.find("section",id="s1").string.strip() == "section one"
-	trackerTwo = soup.article.find("div")
+	trackerTwo = soup.article.find_all("div")[0]
 	sectionTwo = soup.article("section")[1]
-	s2id = sectionTwo["id"]
-	s2trk = trackerTwo["id"]
+	trackerThree = soup.article.find_all("div")[1]
+	sectionThree = soup.article("section")[2]
+	s2id = sectionTwo["id"].encode("utf-8")
+	s2trk = trackerTwo["id"].encode("utf-8")
+	s3id = sectionThree["id"].encode("utf-8")
+	s3trk = trackerThree["id"].encode("utf-8")
 	assert s2id is not None
-	assert soup("script")[2].string.strip() == """\
-declare("a1",{"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"});
-declare("s1",{"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"});
-declare("%(s2id)s",{"driven-by": "%(s2trk)s", "tracker-driven": ["left", "top"]});""" % { "s2id": s2id, "s2trk":s2trk }
+	assert s3id is not None
+
+	config = eval_config_script(soup("script")[2].string)
+	assert config["a1"] == {"area-names": ["upper", "lower"], "encoding": "utf-8", "layouter": "area-stage"}
+	assert config["s1"] == {"area-names": ["upper"], "encoding": "utf-8", "laidout": "area-member"}
+	print config[s3id]
+	assert config[s2id] == {"driven-by": s2trk, "tracker-driven": ["left", "top"]}
+	assert config[s3id] == {"driven-by": s3trk, "tracker-driven": ["left", "top"], 
+		"area-names": ["lower"], 
+		#"encoding": "utf-8", 
+		"laidout": "area-member" }
+
 
 	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
 	assert trackerTwo["class"].split() == [u"tracker", u"section-tracker"]
