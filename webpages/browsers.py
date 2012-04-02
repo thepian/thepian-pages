@@ -217,6 +217,10 @@ declare("%(id)s",%(json)s);
 		classNames = []
 		if "class" in element: classNames = element["class"].split(" ")
 		classNames += ["tracker", "%s-tracker" % element.name]
+		if "area-names" in matter:
+			for an in matter["area-names"]: 
+				classNames.append("in-%s-area" % an)
+				classNames.append("in-%s-order-%s" % (an,self.getAreaOrder(element,an)))
 		tracker["class"] = " ".join(classNames)
 		element.insert_before(tracker)
 

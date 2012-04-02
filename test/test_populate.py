@@ -371,6 +371,7 @@ def test_populate_trackers():
 
 	# assert soup("section",id="s2")[0]["class"] == "in-lower-area in-lower-order-0"
 	assert trackerTwo["class"].split() == [u"tracker", u"section-tracker"]
+	assert trackerThree["class"].split() == [u"tracker", u"section-tracker", u"in-lower-area",u"in-lower-order-0"]
 	# assert False
 	#TODO document properties if stateful
 
