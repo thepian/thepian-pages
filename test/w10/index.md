@@ -6,5 +6,7 @@ stateful: yes
 	<section id="s1" in-area="upper"></section>
 	<section tracker-driven="left top"></section>
 	<section in-area="lower" tracker-driven="left top"></section>
+	<section in-area="upper" tracker-driven="left top" tracker-parent="other-trackers"></section>
+	<div id="other-trackers"></div>
 </article>
 	

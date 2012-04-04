@@ -222,7 +222,18 @@ declare("%(id)s",%(json)s);
 				classNames.append("in-%s-area" % an)
 				classNames.append("in-%s-order-%s" % (an,self.getAreaOrder(element,an)))
 		tracker["class"] = " ".join(classNames)
-		element.insert_before(tracker)
+
+		# if "tracker-parent" in element doesn't seem to work
+		try:
+			trackerParent = soup.find(id=element["tracker-parent"])
+			if trackerParent:
+				matter["tracker-parent"] = element["tracker-parent"]
+				trackerParent.insert(0,tracker)
+			else:
+				element.insert_before(tracker)
+			del element["tracker-parent"]
+		except: #TODO more precise catch
+			element.insert_before(tracker)
 
 		matter["driven-by"] = tracker["id"]
 
