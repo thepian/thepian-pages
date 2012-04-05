@@ -444,14 +444,15 @@ def save_expander(expander,browser,config):
 	header,content = expander.get_matter_and_content_for(browser.browser_type)
 	header,content, lists = browser.expand(header,content,markup=expander.markup,config=expander.config) 
 	try:
-		if "charset" in header:
+		if "charset" in header and header["charset"]:
 			content = content.encode(header["charset"])
 	except Exception,e:
-		print >>sys.stderr, "failed to encode", expander.path
+		print >>sys.stderr, "failed to encode", expander.path, "markup" in header and header["markup"] or "no markup", header["charset"]
+		print >>sys.stderr, e
 	#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
 	charset = "charset" in header and header["charset"] or None
-	print charset, type(content), file_path.replace(base_path,"")
+	print charset or "binary", type(content), file_path.replace(base_path,"")
 	with open(file_path,"wb") as f:
 		f.write(content)
 

@@ -79,12 +79,22 @@ def test_populate():
 	assert soup.article == soup.find(id="a")
 	assert soup.article.h2.string.strip() == "Article"
 	assert soup.article.p.string.strip() == "here is the article"
+
+	pg_size = getsize(join(pages_test_root,"w1","assets","horizontal-rule.gif"))
+	assert getsize(join(pages_test_root,"output","desktop","assets","horizontal-rule.gif")) == pg_size
+	pg_size = getsize(join(pages_test_root,"w1","assets","input-background.png"))
+	assert getsize(join(pages_test_root,"output","desktop","assets","input-background.png")) == pg_size
+	pg_size = getsize(join(pages_test_root,"w1","assets","page-background.jpg"))
+	assert getsize(join(pages_test_root,"output","desktop","assets","page-background.jpg")) == pg_size
+	# assert False
+	
 	
 #TODO expand parent document for XML
 #TODO try making all types of FileExpander
 #TODO test presence of path, urlpath, outpath
 #TODO test permlink, path overrides
 #TODO test that common file types work
+#TODO config default, log charset encode errors rather than fail, test no failure
 
 def test_populate_desktop_browser():
 	from webpages.populate import populate, save_expander
@@ -216,6 +226,12 @@ def test_populate_html_expansion():
 	soup = get_soup(pages_test_root,"output","desktop","iso-encoded","index.html")
 	# assert soup.head.find("meta",attrs={ "name":"charset" })["content"] == "iso-8859-1"
 
+	soup = get_soup(pages_test_root,"output","desktop","index.html")
+	assert soup.script["src"] == "head.js"
+	assert soup.body.contents[0].string.strip() == "index page"
+
+	#TODO test that derived parts head is mixed in
+	# assert False
 
 
 def _assert_content_re(path,pattern):
