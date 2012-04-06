@@ -85,10 +85,11 @@ def cache_expander(expander,browser,config):
 	header,content = expander.get_matter_and_content_for(browser.browser_type)
 	header,content, lists = browser.expand(header,content,markup=expander.markup,config=expander.config) 
 	try:
-		if "charset" in header:
+		if "charset" in header and header["charset"]:
 			content = content.encode(header["charset"])
 	except Exception,e:
-		print >>sys.stderr, "failed to encode", expander.path
+		print >>sys.stderr, "failed to encode", expander.path, "markup" in header and header["markup"] or "no markup", header["charset"]
+		print >>sys.stderr, e
 	
 	update_lists(expander,header,lists)
 
