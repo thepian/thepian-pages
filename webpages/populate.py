@@ -452,7 +452,7 @@ def save_expander(expander,browser,config):
 	#expander.update_lists(header,{ "offline": [expander.urlpath] })
 
 	charset = "charset" in header and header["charset"] or None
-	print charset or "binary", type(content), file_path.replace(base_path,"")
+	# print charset or "binary", type(content), file_path.replace(base_path,"")
 	with open(file_path,"wb") as f:
 		f.write(content)
 
