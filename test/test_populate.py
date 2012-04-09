@@ -231,7 +231,17 @@ def test_populate_html_expansion():
 	assert soup.body.contents[0].string.strip() == "index page"
 
 	#TODO test that derived parts head is mixed in
-	# assert False
+
+	soup = get_soup(pages_test_root,"output","desktop","IE-markup","index.html")
+
+
+	soup = get_soup(pages_test_root,"output","desktop","pocketable-doc","index.html")
+	soup.find("meta",attrs={ "name":"description"}) == "Web Page Specification for Quality Assurance"
+	soup.find("meta",attrs={ "name":"author"}) == "Henrik Vendelbo"
+	soup.body.article.string.strip() == "Here is my article"
+
+	#TODO test lang: de,fr
+	assert False
 
 
 def _assert_content_re(path,pattern):
