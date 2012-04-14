@@ -337,7 +337,7 @@ class BrowserSpecific(object):
 
 		if markup == "scss":
 			content = self.expandScss(header,content,config=config)
-		elif markup == ("text","xml"):
+		elif markup in ("text","xml"):
 			pass #TODO consider what to do
 		elif markup == "html":
 			soup = None
