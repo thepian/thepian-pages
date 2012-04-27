@@ -89,7 +89,7 @@ class CachedHandler(tornado.web.RequestHandler):
 
         domain = self.request.host.split(':')[0]
         domain = domain.replace(".local","") 
-        if domain[:7] == "10.0.0.":
+        if domain[:7] == "10.0.0." or domain[:8] == "192.168.":
             domain = "localhost"
         contentkey = BROWSER_SPECIFIC_CONTENT % (browser_type , domain, path) 
         if contentkey in REDIS:
