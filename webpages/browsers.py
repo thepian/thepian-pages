@@ -37,8 +37,10 @@ class HtmlContent(object):
 
 	def injectHead(self,dest):
 		if self.soup.head:
-			for c in reversed(self.soup.head.contents):
-				dest.insert(0,c)
+			for c in self.soup.head.contents[:]:
+				if hasattr(c,"name"):
+					# print c
+					dest.append(c)
 
 class PartFile(object):
 	""" Fetch Browser Specific Part

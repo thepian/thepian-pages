@@ -230,7 +230,16 @@ def test_populate_html_expansion():
 	assert soup.script["src"] == "head.js"
 	assert soup.body.article.contents[0].string.strip() == "index page"
 
-	assert soup.find(id="article-head")
+	assert soup.find(id="article-head")["rel"] == "stylesheet"
+	assert soup.find(id="article-head2")["rel"] == "stylesheet"
+
+	soup = get_soup(pages_test_root,"output","desktop","with-head","index.html")
+	assert soup.script["src"] == "head.js"
+	# assert soup.body.article.contents[0].string.strip() == "index page"
+
+	assert soup.find(id="article-head")["src"] == "one.js"
+	assert soup.find(id="article-head2")["src"] == "two.js"
+
 	#TODO test that derived parts head is mixed in
 	# assert False
 
@@ -387,7 +396,9 @@ def test_populate_trackers():
 	assert s2id is not None
 	assert s3id is not None
 
-	config = eval_config_script(soup("script")[2].string)
+	soup("script")[2].src == "application.js"
+
+	config = eval_config_script(soup("script")[-1].string)
 	assert config["a1"] == {"area-names": ["upper", "lower"], "charset": "utf-8", "layouter": "area-stage"}
 	assert config["s1"] == {"area-names": ["upper"], "charset": "utf-8", "laidout": "area-member"}
 	assert config[s2id] == {"driven-by": s2trk, "tracker-driven": ["left", "top"]}
