@@ -429,7 +429,9 @@ class BrowserSpecific(object):
 	def expandScss(self,header,content,config=None):
 		from scss import Scss
 		#TODO offline images
-		css = Scss()
+		css = Scss(scss_opts={
+			"compress": config["css-compress"],
+			})
 		#TODO scss unicode call
 		return unicode(css.compile(content))
 

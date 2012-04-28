@@ -123,14 +123,29 @@ def test_server_options():
 	options, r = server_options_parser.parse_args(args=["--nofork"])
 	config = SiteConfig(options)
 	assert config["port"] == 4444
+	assert config["debug"] == False
+	assert config["css-compress"] == True
 
 	options, r = server_options_parser.parse_args(args=["--port=555"])
 	config = SiteConfig(options)
 	assert config["port"] == 555
 
+	options, r = server_options_parser.parse_args(args=["--debug"])
+	config = SiteConfig(options)
+	assert config["debug"] == True
+	assert config["css-compress"] == False
+
 def test_populate_options():
 	options, r = populate_options_parser.parse_args(args=["--dest=./abc"])
 	config = SiteConfig(options)
+	assert config["debug"] == False
+	#TODO dest dir
+	assert config["css-compress"] == True
+
+	options, r = populate_options_parser.parse_args(args=["--debug"])
+	config = SiteConfig(options)
+	assert config["debug"] == True
+	assert config["css-compress"] == False
 
 def test_split():
 

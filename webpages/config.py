@@ -8,7 +8,8 @@ from base import ObjectLike
 
 class SiteConfig(object):
 
-    defaults = {
+    prod_defaults = {
+        "debug": False,
         "domain": "localhost",
         "section-content-class": "section-content",
         "exclude": [],
@@ -20,6 +21,23 @@ class SiteConfig(object):
         "assets-base": None,
         "charset": "utf-8", # Default charset for HTML, XML, text
         "author": None,
+        "css-compress": True,
+    }
+    
+    debug_defaults = {
+        "debug": True,
+        "domain": "localhost",
+        "section-content-class": "section-content",
+        "exclude": [],
+        "appcache": True,
+        "source": None,
+        "output": None,
+        "port": 4444,
+        "browser": None,
+        "assets-base": None,
+        "charset": "utf-8", # Default charset for HTML, XML, text
+        "author": None,
+        "css-compress": False,
     }
     
     def __init__(self,options):
@@ -67,8 +85,8 @@ class SiteConfig(object):
 
         if hasattr(options,"browser") and options.browser:
             self.config["browser"] = options.browser
-                
-        self.config["debug"] = options.debug
+             
+        self.defaults = options.debug and self.debug_defaults or self.prod_defaults   
         self.config["appcache"] = options.appcache
         if hasattr(options,"pygments"):
             self.config["pygments"] = options.pygments
@@ -88,6 +106,8 @@ class SiteConfig(object):
         self.configRe[key] = re.compile(r"{{\s*site.%s\s*}}" % key)
 
     def get_active_domain(self):
+        if "domain" not in self.config:
+            return self.defaults["domain"]
         if self.config["debug"]:
             return self.config["domain"] + ".local"
         else:
