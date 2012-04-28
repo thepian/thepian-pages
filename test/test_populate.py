@@ -228,8 +228,9 @@ def test_populate_html_expansion():
 
 	soup = get_soup(pages_test_root,"output","desktop","index.html")
 	assert soup.script["src"] == "head.js"
-	assert soup.body.contents[0].string.strip() == "index page"
+	assert soup.body.article.contents[0].string.strip() == "index page"
 
+	assert soup.find(id="article-head")
 	#TODO test that derived parts head is mixed in
 	# assert False
 

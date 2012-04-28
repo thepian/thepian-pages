@@ -28,13 +28,17 @@ class HtmlContent(object):
 	def __init__(self,html):
 		self.soup = BeautifulSoup(html,"html5lib")
 
-	def inject(self,dest):
+	def injectBody(self,dest):
 		contents = self.soup.contents
 		if self.soup.body: contents = self.soup.body.contents
 
 		for c in reversed(contents):
 			dest.insert(0,c)
 
+	def injectHead(self,dest):
+		if self.soup.head:
+			for c in reversed(self.soup.head.contents):
+				dest.insert(0,c)
 
 class PartFile(object):
 	""" Fetch Browser Specific Part
@@ -120,7 +124,11 @@ class PartDocument(object):
 		content_tag = "content-tag" in self.header and self.header["content-tag"] or "body"
 		dest = soup.findAll(content_tag)[0]
 
-		HtmlContent(content).inject(dest)
+		htmlContent = HtmlContent(content)
+		htmlContent.injectBody(dest)
+
+		#TODO priority for links and scripts added
+		htmlContent.injectHead(soup.find("head"))
 
 		return soup
 
@@ -162,7 +170,7 @@ declare("%(id)s",%(json)s);
 
 			if part and exists(part.path):
 				header,rest = self.config.split_matter_and_utf8_content(part.read(),{})
-				HtmlContent(rest).inject(tag)
+				HtmlContent(rest).injectBody(tag)
 				if config_id:
 					setattr(tag,'config_id',config_id)
 					self.statefulConfigs[config_id] = header
@@ -258,6 +266,11 @@ declare("%(id)s",%(json)s);
 
 
 	def expandSoup(self,content):
+		"""Expand content into the body or content-tag of the PartDocument
+			expand elements with id or src.
+			construct areas and stages
+			construct tracker driven
+			"""
 		import re
 		soup = self.wrapDocumentSoup(content)
 
