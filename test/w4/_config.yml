@@ -1,0 +1,6 @@
+title: Write Up
+page-title: 
+- "{{ page.title }} - {{ site.title }}"
+- "{{ site.title }}"
+author: Henrik Vendelbo
+description: Web Page Specification for Quality Assurance

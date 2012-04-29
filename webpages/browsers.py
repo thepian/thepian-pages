@@ -104,11 +104,11 @@ class PartDocument(object):
 				if not parent_name:
 					pass
 				if parent_name == name:
-					print "Recursive document reference in %s.document.html" % name
+					logging.warn("Recursive document reference in %s.document.html" % name) 
 				else:
 					self.parent = PartDocument(self.specific,parent_name,self.config)
 		else:
-			print "no part named", doc.path
+			logging.warn("Document not found %s" % name)
 
 
 	def wrapDocumentSoup(self,content):
@@ -119,6 +119,7 @@ class PartDocument(object):
 		part_content = self.rest
 		if self.parent:
 			part_content = self.parent.wrapDocumentSoup(self.rest).prettify()
+			#TODO mix in head of parent
 
 		soup = BeautifulSoup(part_content,"html5lib")
 
@@ -359,6 +360,9 @@ class BrowserSpecific(object):
 				soup = parent_doc.expandSoup(content)
 			else:
 				soup = BeautifulSoup(content,"html5lib")
+
+			if "lang" in header:
+				pass #TODO mark html element
 
 			# print soup.head
 			stateful_doc = "stateful" in header and header["stateful"] is True

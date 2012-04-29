@@ -3,7 +3,7 @@ document: common
 stateful: yes
 ---
 <article id="a1" area-stage="splash upper lower">
-	<section id="s1" in-area="splash upper"></section>
+	<section id="s1" in-area="splash upper" role="deck"></section>
 	<section id="s2" in-area="splash lower"></section>
 </article>
 	
