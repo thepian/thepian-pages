@@ -349,11 +349,11 @@ class BrowserSpecific(object):
 			parent_doc = self.partDocument(header["document"],config)
 			header = parent_doc.get_collapsed_header(header=header)
 
-		if markup is "scss":
+		if markup == "scss":
 			content = self.expandScss(header,content,config=config)
 		elif markup in ("text","xml"):
 			pass #TODO consider what to do
-		elif markup is "html":
+		elif markup == "html":
 			soup = None
 			if parent_doc:
 				soup = parent_doc.expandSoup(content)
